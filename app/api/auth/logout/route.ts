@@ -1,18 +1,21 @@
-import { NextResponse } from 'next/server';
-import { clearAuthCookie } from '@/lib/auth';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { clearAuthCookie } from "@/lib/auth";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
     // Clear the authentication cookie
     await clearAuthCookie();
 
-    return NextResponse.json({ message: 'Logged out successfully' });
+    // Redirect to login page
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
   } catch (error) {
-    console.error('Logout error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error("Logout error:", error);
+    // Even on error, redirect to login
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
   }
 }
-
