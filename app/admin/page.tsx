@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
+import Link from 'next/link';
 
 export default async function AdminPage() {
   const user = await getCurrentUser();
@@ -15,11 +16,26 @@ export default async function AdminPage() {
         <div className="bg-white shadow rounded-lg p-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">Admin Dashboard</h1>
           
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
               <p className="text-gray-600">
                 This page is only accessible to users with the admin role.
               </p>
+            </div>
+
+            <div className="border-t pt-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <Link
+                  href="/admin/creators"
+                  className="block p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                >
+                  <h4 className="font-medium text-gray-900">Creator Management</h4>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Review and approve creator applications
+                  </p>
+                </Link>
+              </div>
             </div>
 
             <div className="border-t pt-4">
