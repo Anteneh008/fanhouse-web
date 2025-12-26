@@ -110,16 +110,27 @@ export default function BecomeCreatorPage() {
           <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
             <p className="font-medium">Status: Rejected</p>
             <p className="text-sm mt-1">
-              Please contact support if you have questions about this decision.
+              Your previous application was not approved. You can reapply below.
             </p>
           </div>
-          <div className="text-center">
-            <Link
-              href="/dashboard"
-              className="text-blue-600 hover:text-blue-500 font-medium"
+          <div className="text-center space-y-3">
+            <p className="text-sm text-gray-600">
+              Please review your information and submit a new application.
+            </p>
+            <button
+              onClick={() => setStatus(null)}
+              className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
             >
-              Back to Dashboard
-            </Link>
+              Reapply Now
+            </button>
+            <div>
+              <Link
+                href="/dashboard"
+                className="text-blue-600 hover:text-blue-500 font-medium"
+              >
+                Back to Dashboard
+              </Link>
+            </div>
           </div>
         </div>
       </div>

@@ -186,21 +186,29 @@ export default function CreatorStatusPage() {
             <p className="font-medium">Status: Rejected</p>
             {status.kyc?.rejectionReason && (
               <p className="text-sm mt-1">
-                Reason: {status.kyc.rejectionReason}
+                <strong>Reason:</strong> {status.kyc.rejectionReason}
               </p>
             )}
             <p className="text-sm mt-2">
-              Please contact support if you have questions about this decision.
+              You can reapply to become a creator. Please review the rejection reason and ensure your application meets our requirements.
             </p>
           </div>
 
-          <div className="text-center">
+          <div className="text-center space-y-3">
             <Link
-              href="/dashboard"
-              className="text-blue-600 hover:text-blue-500 font-medium"
+              href="/become-creator"
+              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
             >
-              Back to Dashboard
+              Reapply to Become a Creator
             </Link>
+            <div>
+              <Link
+                href="/dashboard"
+                className="text-blue-600 hover:text-blue-500 font-medium"
+              >
+                Back to Dashboard
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -230,12 +238,20 @@ export default function CreatorStatusPage() {
             <p className="text-sm text-gray-600 mb-4">
               Redirecting to your creator dashboard...
             </p>
-            <Link
-              href="/creator/dashboard"
-              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
-            >
-              Go to Creator Dashboard
-            </Link>
+              <div className="flex space-x-3">
+                <Link
+                  href="/creator/verify"
+                  className="inline-block px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+                >
+                  Complete Verification
+                </Link>
+                <Link
+                  href="/creator/dashboard"
+                  className="inline-block px-6 py-3 bg-gray-100 text-gray-900 rounded-md hover:bg-gray-200 font-medium"
+                >
+                  Go to Dashboard
+                </Link>
+              </div>
           </div>
         </div>
       </div>

@@ -22,21 +22,45 @@ export async function POST(request: NextRequest) {
 
     // Verify creator exists and is approved
     const creatorResult = await db.query(
-      `SELECT u.id, cp.subscription_price_cents
+      `SELECT u.id, u.role, u.creator_status, cp.subscription_price_cents
        FROM users u
-       INNER JOIN creator_profiles cp ON u.id = cp.user_id
-       WHERE u.id = $1 AND u.role = 'creator' AND u.creator_status = 'approved'`,
+       LEFT JOIN creator_profiles cp ON u.id = cp.user_id
+       WHERE u.id = $1`,
       [creatorId]
     );
 
     if (creatorResult.rows.length === 0) {
       return NextResponse.json(
-        { error: 'Creator not found or not approved' },
+        { error: 'Creator not found' },
         { status: 404 }
       );
     }
 
     const creator = creatorResult.rows[0];
+
+    // Check if user is a creator
+    if (creator.role !== 'creator') {
+      return NextResponse.json(
+        { error: 'User is not a creator' },
+        { status: 400 }
+      );
+    }
+
+    // Check if creator is approved
+    if (creator.creator_status !== 'approved') {
+      return NextResponse.json(
+        { error: 'Creator is not approved yet' },
+        { status: 400 }
+      );
+    }
+
+    // Check if creator has a profile (subscription_price_cents can be 0 for free subscriptions)
+    if (creator.subscription_price_cents === null || creator.subscription_price_cents === undefined) {
+      return NextResponse.json(
+        { error: 'Creator has not set up their subscription price yet' },
+        { status: 400 }
+      );
+    }
 
     // Check if already subscribed
     const existingSubResult = await db.query(
@@ -59,7 +83,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const priceCents = creator.subscription_price_cents || 0;
+    // Get subscription price (default to 0 if not set, but warn)
+    const priceCents = creator.subscription_price_cents ?? 0;
+    
+    if (priceCents < 0) {
+      return NextResponse.json(
+        { error: 'Invalid subscription price' },
+        { status: 400 }
+      );
+    }
     const now = new Date();
     const expiresAt = new Date(now);
     expiresAt.setMonth(expiresAt.getMonth() + 1); // 1 month subscription
@@ -78,14 +110,15 @@ export async function POST(request: NextRequest) {
     // Create transaction (mock payment - always succeeds for MVP)
     const transactionResult = await db.query(
       `INSERT INTO transactions
-       (fan_id, creator_id, amount_cents, currency, transaction_type, status, payment_method, metadata)
-       VALUES ($1, $2, $3, 'USD', 'subscription', 'completed', 'mock', $4)
+       (user_id, creator_id, subscription_id, amount_cents, transaction_type, status, payment_provider, payment_provider_transaction_id)
+       VALUES ($1, $2, $3, $4, 'subscription', 'completed', 'mock', $5)
        RETURNING *`,
       [
         user.id,
         creatorId,
+        subscription.id,
         priceCents,
-        JSON.stringify({ subscription_id: subscription.id }),
+        `mock_txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       ]
     );
 
@@ -121,8 +154,9 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Subscription error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

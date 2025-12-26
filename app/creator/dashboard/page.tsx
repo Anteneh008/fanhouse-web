@@ -137,7 +137,7 @@ export default async function CreatorDashboardPage() {
             {/* Quick Actions */}
             <div className="bg-white shadow rounded-lg p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Link
                   href="/creator/posts/new"
                   className="px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-center font-medium"
@@ -149,6 +149,12 @@ export default async function CreatorDashboardPage() {
                   className="px-4 py-3 bg-gray-100 text-gray-900 rounded-md hover:bg-gray-200 text-center font-medium"
                 >
                   Manage Posts
+                </Link>
+                <Link
+                  href="/creator/verify"
+                  className="px-4 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-center font-medium"
+                >
+                  Verify Identity
                 </Link>
                 <button
                   disabled

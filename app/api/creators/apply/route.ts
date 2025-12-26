@@ -16,10 +16,10 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth();
 
-    // Check if user is already a creator
-    if (user.role === "creator") {
+    // Check if user is already an approved creator
+    if (user.role === "creator" && user.creatorStatus === "approved") {
       return NextResponse.json(
-        { error: "You are already a creator" },
+        { error: "You are already an approved creator" },
         { status: 400 }
       );
     }
@@ -31,6 +31,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Allow rejected users to reapply
+    const isReapplication = user.creatorStatus === "rejected";
 
     const body: CreatorApplicationRequest = await request.json();
     const { displayName, bio } = body;
@@ -55,6 +58,7 @@ export async function POST(request: NextRequest) {
 
     try {
       // Update user to creator role with pending status
+      // If reapplication, reset status from rejected to pending
       await db.query(
         `UPDATE users 
          SET role = 'creator', creator_status = 'pending'
@@ -73,19 +77,29 @@ export async function POST(request: NextRequest) {
         [user.id, displayName.trim(), bio?.trim() || null]
       );
 
-      // Create initial KYC verification record (pending)
+      // Create or reset KYC verification record (pending)
+      // If reapplication, reset the verification status
       await db.query(
-        `INSERT INTO kyc_verifications (user_id, status, verification_type)
-         VALUES ($1, 'pending', 'kyc')
-         ON CONFLICT (user_id, verification_type) DO NOTHING`,
+        `INSERT INTO kyc_verifications (user_id, status, verification_type, rejection_reason)
+         VALUES ($1, 'pending', 'kyc', NULL)
+         ON CONFLICT (user_id, verification_type) 
+         DO UPDATE SET 
+           status = 'pending',
+           rejection_reason = NULL,
+           persona_inquiry_id = NULL,
+           persona_verification_id = NULL,
+           updated_at = CURRENT_TIMESTAMP`,
         [user.id]
       );
 
       await db.query("COMMIT");
 
       return NextResponse.json({
-        message: "Creator application submitted successfully",
+        message: isReapplication 
+          ? "Creator application resubmitted successfully" 
+          : "Creator application submitted successfully",
         status: "pending",
+        isReapplication,
       });
     } catch (error) {
       await db.query("ROLLBACK");
