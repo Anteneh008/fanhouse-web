@@ -81,3 +81,120 @@ export interface PersonaWebhookPayload {
   };
 }
 
+// Content system types
+export type PostVisibility = 'free' | 'subscriber' | 'ppv';
+export type MediaType = 'image' | 'video';
+export type ProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type SubscriptionStatus = 'active' | 'canceled' | 'expired' | 'pending';
+export type EntitlementType = 'subscription' | 'ppv_purchase' | 'tip' | 'free';
+export type TransactionType = 'subscription' | 'ppv' | 'tip';
+export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'refunded';
+export type LedgerEntryType = 'earnings' | 'payout' | 'refund' | 'adjustment';
+
+export interface Post {
+  id: string;
+  creatorId: string;
+  content: string | null;
+  visibilityType: PostVisibility;
+  priceCents: number;
+  isPinned: boolean;
+  isDisabled: boolean;
+  disabledReason: string | null;
+  likesCount: number;
+  commentsCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface MediaAsset {
+  id: string;
+  postId: string;
+  fileUrl: string;
+  fileType: MediaType;
+  fileSize: number | null;
+  mimeType: string | null;
+  thumbnailUrl: string | null;
+  width: number | null;
+  height: number | null;
+  duration: number | null;
+  processingStatus: ProcessingStatus;
+  processingError: string | null;
+  sortOrder: number;
+  createdAt: Date;
+}
+
+export interface Subscription {
+  id: string;
+  fanId: string;
+  creatorId: string;
+  tierName: string;
+  priceCents: number;
+  status: SubscriptionStatus;
+  startedAt: Date;
+  expiresAt: Date | null;
+  canceledAt: Date | null;
+  autoRenew: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Entitlement {
+  id: string;
+  userId: string;
+  postId: string | null;
+  creatorId: string | null;
+  entitlementType: EntitlementType;
+  subscriptionId: string | null;
+  transactionId: string | null;
+  purchasedAt: Date;
+  expiresAt: Date | null;
+  createdAt: Date;
+}
+
+export interface Transaction {
+  id: string;
+  userId: string;
+  creatorId: string | null;
+  postId: string | null;
+  subscriptionId: string | null;
+  amountCents: number;
+  transactionType: TransactionType;
+  status: TransactionStatus;
+  paymentProvider: string;
+  paymentProviderTransactionId: string | null;
+  failureReason: string | null;
+  refundedAt: Date | null;
+  refundReason: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LedgerEntry {
+  id: string;
+  creatorId: string;
+  transactionId: string | null;
+  amountCents: number;
+  platformFeeCents: number;
+  netAmountCents: number;
+  description: string | null;
+  entryType: LedgerEntryType;
+  createdAt: Date;
+}
+
+export interface CreatorEarnings {
+  totalEarningsCents: number;
+  totalPayoutsCents: number;
+  pendingEarningsCents: number;
+}
+
+// Post with creator and media
+export interface PostWithDetails extends Post {
+  creator: {
+    id: string;
+    email: string;
+    displayName: string | null;
+  };
+  media: MediaAsset[];
+  hasAccess: boolean; // Whether current user can view this post
+}
+
