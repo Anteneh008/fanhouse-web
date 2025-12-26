@@ -17,7 +17,30 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - fanhouse-network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: fanhouse-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@fanhouse.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - fanhouse-network
 
 volumes:
   postgres_data:
+  pgadmin_data:
+
+networks:
+  fanhouse-network:
+    driver: bridge
 
