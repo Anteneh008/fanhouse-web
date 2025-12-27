@@ -50,7 +50,7 @@ export default async function CreatorMessagesPage() {
         <div className="mb-8">
           <div className="bg-white shadow rounded-lg p-6 max-w-md">
             <div className="flex items-center">
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
                   <span className="text-white text-sm font-bold">M</span>
                 </div>
