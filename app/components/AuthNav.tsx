@@ -15,6 +15,28 @@ interface AuthNavProps {
 export default function AuthNav({ user }: AuthNavProps) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoggingOut(true);
+    try {
+      const res = await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+      if (res.ok) {
+        // Redirect to login page
+        window.location.href = "/login";
+      } else {
+        // Even if there's an error, try to redirect
+        window.location.href = "/login";
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Even on error, redirect to login
+      window.location.href = "/login";
+    }
+  };
 
   const isActive = (path: string) => pathname === path || pathname?.startsWith(path + '/');
 
@@ -127,14 +149,13 @@ export default function AuthNav({ user }: AuthNavProps) {
               >
                 Dashboard
               </Link>
-              <form action="/api/auth/logout" method="POST" className="inline">
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors font-medium"
-                >
-                  Sign Out
-                </button>
-              </form>
+              <button
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoggingOut ? "Signing out..." : "Sign Out"}
+              </button>
             </>
           ) : (
             <>
@@ -264,14 +285,13 @@ export default function AuthNav({ user }: AuthNavProps) {
                 >
                   Dashboard
                 </Link>
-                <form action="/api/auth/logout" method="POST" className="px-4 py-2">
-                  <button
-                    type="submit"
-                    className="block w-full text-left text-white/80 hover:text-white"
-                  >
-                    Sign Out
-                  </button>
-                </form>
+                <button
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                  className="block w-full text-left px-4 py-2 text-white/80 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoggingOut ? "Signing out..." : "Sign Out"}
+                </button>
               </>
             ) : (
               <>

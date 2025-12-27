@@ -7,15 +7,11 @@ export async function POST(request: NextRequest) {
     // Clear the authentication cookie
     await clearAuthCookie();
 
-    // Redirect to login page
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+    // Return success response - client will handle redirect
+    return NextResponse.json({ success: true, message: "Logged out successfully" });
   } catch (error) {
     console.error("Logout error:", error);
-    // Even on error, redirect to login
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+    // Even on error, return success to allow redirect
+    return NextResponse.json({ success: true, message: "Logged out successfully" });
   }
 }
