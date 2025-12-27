@@ -38,6 +38,7 @@ export default function DashboardNav({ userRole }: DashboardNavProps) {
     { name: 'Creators', href: '/admin/creators' },
     { name: 'Posts', href: '/admin/posts' },
     { name: 'Transactions', href: '/admin/transactions' },
+    { name: 'Payouts', href: '/admin/payouts' },
     { name: 'Users', href: '/admin/users' },
   ];
 

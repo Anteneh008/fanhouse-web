@@ -35,8 +35,14 @@ export default function SubscribeForm({ creatorId, priceCents }: SubscribeFormPr
         throw new Error(data.error || 'Failed to subscribe');
       }
 
-      // Redirect to creator profile
-      router.push(`/creators/${creatorId}`);
+      // If payment URL is returned, redirect to CCBill payment page
+      if (data.paymentUrl) {
+        window.location.href = data.paymentUrl;
+        return;
+      }
+
+      // Otherwise, redirect to creator profile (mock payment flow)
+      router.push(`/creators/${creatorId}?subscribed=true`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to subscribe');
     } finally {

@@ -10,17 +10,20 @@ export default async function AdminTransactionsPage() {
     redirect('/');
   }
 
-  // Get all transactions
+  // Get all transactions with earnings breakdown
   const transactionsResult = await db.query(
     `SELECT 
       t.*,
       u_fan.email as fan_email,
       u_creator.email as creator_email,
-      cp.display_name as creator_display_name
+      cp.display_name as creator_display_name,
+      le.platform_fee_cents,
+      le.net_amount_cents as creator_earnings_cents
     FROM transactions t
     LEFT JOIN users u_fan ON t.user_id = u_fan.id
     LEFT JOIN users u_creator ON t.creator_id = u_creator.id
     LEFT JOIN creator_profiles cp ON t.creator_id = cp.user_id
+    LEFT JOIN ledger_entries le ON t.id = le.transaction_id AND le.entry_type = 'earnings'
     ORDER BY t.created_at DESC
     LIMIT 200`
   );
@@ -33,20 +36,25 @@ export default async function AdminTransactionsPage() {
     creatorEmail: row.creator_email,
     creatorDisplayName: row.creator_display_name,
     amountCents: row.amount_cents,
+    platformFeeCents: row.platform_fee_cents || Math.floor(row.amount_cents * 0.2), // 20% platform fee
+    creatorEarningsCents: row.creator_earnings_cents || Math.floor(row.amount_cents * 0.8), // 80% to creator
     transactionType: row.transaction_type,
     status: row.status,
     paymentMethod: row.payment_provider,
     createdAt: row.created_at,
   }));
 
-  // Get stats
+  // Get stats with earnings breakdown
   const statsResult = await db.query(
     `SELECT 
-      COUNT(*) FILTER (WHERE status = 'completed') as completed,
-      COUNT(*) FILTER (WHERE status = 'pending') as pending,
-      COUNT(*) FILTER (WHERE status = 'failed') as failed,
-      SUM(amount_cents) FILTER (WHERE status = 'completed') as total_revenue_cents
-    FROM transactions`
+      COUNT(*) FILTER (WHERE t.status = 'completed') as completed,
+      COUNT(*) FILTER (WHERE t.status = 'pending') as pending,
+      COUNT(*) FILTER (WHERE t.status = 'failed') as failed,
+      SUM(t.amount_cents) FILTER (WHERE t.status = 'completed') as total_revenue_cents,
+      SUM(COALESCE(le.platform_fee_cents, FLOOR(t.amount_cents * 0.2))) FILTER (WHERE t.status = 'completed') as total_platform_fee_cents,
+      SUM(COALESCE(le.net_amount_cents, FLOOR(t.amount_cents * 0.8))) FILTER (WHERE t.status = 'completed') as total_creator_earnings_cents
+    FROM transactions t
+    LEFT JOIN ledger_entries le ON t.id = le.transaction_id AND le.entry_type = 'earnings'`
   );
 
   const stats = {
@@ -54,6 +62,8 @@ export default async function AdminTransactionsPage() {
     pending: parseInt(statsResult.rows[0]?.pending || '0'),
     failed: parseInt(statsResult.rows[0]?.failed || '0'),
     totalRevenueCents: parseInt(statsResult.rows[0]?.total_revenue_cents || '0'),
+    totalPlatformFeeCents: parseInt(statsResult.rows[0]?.total_platform_fee_cents || '0'),
+    totalCreatorEarningsCents: parseInt(statsResult.rows[0]?.total_creator_earnings_cents || '0'),
   };
 
   return (
@@ -68,7 +78,7 @@ export default async function AdminTransactionsPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-4 mb-8">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-6 mb-8">
           <div className="bg-white shadow rounded-lg p-6">
             <div className="flex items-center">
               <div className="shrink-0">
@@ -80,6 +90,49 @@ export default async function AdminTransactionsPage() {
                 <p className="text-sm font-medium text-gray-500">Total Revenue</p>
                 <p className="text-2xl font-semibold text-gray-900">
                   ${(stats.totalRevenueCents / 100).toFixed(2)}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">From all transactions</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="flex items-center">
+              <div className="shrink-0">
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-bold">P</span>
+                </div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500">Platform Fee</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  ${(stats.totalPlatformFeeCents / 100).toFixed(2)}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {(stats.totalRevenueCents > 0 
+                    ? (stats.totalPlatformFeeCents / stats.totalRevenueCents * 100).toFixed(1) 
+                    : '0')}% of revenue
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="flex items-center">
+              <div className="shrink-0">
+                <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-bold">C</span>
+                </div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500">Creator Earnings</p>
+                <p className="text-2xl font-semibold text-green-600">
+                  ${(stats.totalCreatorEarningsCents / 100).toFixed(2)}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {(stats.totalRevenueCents > 0 
+                    ? (stats.totalCreatorEarningsCents / stats.totalRevenueCents * 100).toFixed(1) 
+                    : '0')}% of revenue
                 </p>
               </div>
             </div>
@@ -147,7 +200,13 @@ export default async function AdminTransactionsPage() {
                     Type
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Amount
+                    Total Amount
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Platform Fee
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Creator Earnings
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
@@ -178,8 +237,20 @@ export default async function AdminTransactionsPage() {
                         {transaction.transactionType}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      ${(transaction.amountCents / 100).toFixed(2)} USD
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
+                      ${(transaction.amountCents / 100).toFixed(2)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
+                      ${(transaction.platformFeeCents / 100).toFixed(2)}
+                      <span className="text-xs text-gray-400 ml-1">
+                        ({(transaction.platformFeeCents / transaction.amountCents * 100).toFixed(0)}%)
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 text-right font-semibold">
+                      ${(transaction.creatorEarningsCents / 100).toFixed(2)}
+                      <span className="text-xs text-gray-400 ml-1">
+                        ({(transaction.creatorEarningsCents / transaction.amountCents * 100).toFixed(0)}%)
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span

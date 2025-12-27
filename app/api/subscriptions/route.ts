@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
+import { getCCBillConfig, generateCCBillPaymentLink } from '@/lib/ccbill';
 import db from '@/lib/db';
 
 /**
@@ -92,66 +93,118 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const now = new Date();
-    const expiresAt = new Date(now);
-    expiresAt.setMonth(expiresAt.getMonth() + 1); // 1 month subscription
+    // Check if CCBill is configured
+    const ccbillConfig = getCCBillConfig();
+    const useMockPayments = !ccbillConfig || process.env.USE_MOCK_PAYMENTS === 'true';
 
-    // Create subscription
-    const subscriptionResult = await db.query(
-      `INSERT INTO subscriptions 
-       (fan_id, creator_id, tier_name, price_cents, status, started_at, expires_at, auto_renew)
-       VALUES ($1, $2, $3, $4, 'active', $5, $6, true)
-       RETURNING *`,
-      [user.id, creatorId, tierName || 'default', priceCents, now, expiresAt]
-    );
+    if (useMockPayments) {
+      // Mock payment flow (for development/testing)
+      const now = new Date();
+      const expiresAt = new Date(now);
+      expiresAt.setMonth(expiresAt.getMonth() + 1); // 1 month subscription
 
-    const subscription = subscriptionResult.rows[0];
+      // Create subscription
+      const subscriptionResult = await db.query(
+        `INSERT INTO subscriptions 
+         (fan_id, creator_id, tier_name, price_cents, status, started_at, expires_at, auto_renew)
+         VALUES ($1, $2, $3, $4, 'active', $5, $6, true)
+         RETURNING *`,
+        [user.id, creatorId, tierName || 'default', priceCents, now, expiresAt]
+      );
 
-    // Create transaction (mock payment - always succeeds for MVP)
-    const transactionResult = await db.query(
-      `INSERT INTO transactions
-       (user_id, creator_id, subscription_id, amount_cents, transaction_type, status, payment_provider, payment_provider_transaction_id)
-       VALUES ($1, $2, $3, $4, 'subscription', 'completed', 'mock', $5)
-       RETURNING *`,
-      [
-        user.id,
-        creatorId,
-        subscription.id,
-        priceCents,
-        `mock_txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      ]
-    );
+      const subscription = subscriptionResult.rows[0];
 
-    // Create ledger entry for creator earnings
-    const platformFeeCents = Math.floor(priceCents * 0.2); // 20% platform fee
-    const netAmountCents = priceCents - platformFeeCents;
+      // Create transaction (mock payment - always succeeds for MVP)
+      const transactionResult = await db.query(
+        `INSERT INTO transactions
+         (user_id, creator_id, subscription_id, amount_cents, transaction_type, status, payment_provider, payment_provider_transaction_id)
+         VALUES ($1, $2, $3, $4, 'subscription', 'completed', 'mock', $5)
+         RETURNING *`,
+        [
+          user.id,
+          creatorId,
+          subscription.id,
+          priceCents,
+          `mock_txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        ]
+      );
 
-    await db.query(
-      `INSERT INTO ledger_entries
-       (creator_id, entry_type, amount_cents, platform_fee_cents, net_amount_cents, description, transaction_id)
-       VALUES ($1, 'earnings', $2, $3, $4, $5, $6)`,
-      [
-        creatorId,
-        priceCents,
-        platformFeeCents,
-        netAmountCents,
-        `Subscription payment from ${user.email}`,
-        transactionResult.rows[0].id,
-      ]
-    );
+      // Create ledger entry for creator earnings
+      const platformFeeCents = Math.floor(priceCents * 0.2); // 20% platform fee
+      const netAmountCents = priceCents - platformFeeCents;
 
-    return NextResponse.json(
-      {
-        subscription: {
-          id: subscription.id,
-          creatorId: subscription.creator_id,
-          status: subscription.status,
-          expiresAt: subscription.expires_at,
+      await db.query(
+        `INSERT INTO ledger_entries
+         (creator_id, entry_type, amount_cents, platform_fee_cents, net_amount_cents, description, transaction_id)
+         VALUES ($1, 'earnings', $2, $3, $4, $5, $6)`,
+        [
+          creatorId,
+          priceCents,
+          platformFeeCents,
+          netAmountCents,
+          `Subscription payment from ${user.email}`,
+          transactionResult.rows[0].id,
+        ]
+      );
+
+      return NextResponse.json(
+        {
+          subscription: {
+            id: subscription.id,
+            creatorId: subscription.creator_id,
+            status: subscription.status,
+            expiresAt: subscription.expires_at,
+          },
+          message: 'Subscription created successfully',
         },
-        message: 'Subscription created successfully',
-      },
-      { status: 201 }
-    );
+        { status: 201 }
+      );
+    } else {
+      // CCBill payment flow
+      // Create pending subscription first
+      const now = new Date();
+      const expiresAt = new Date(now);
+      expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+      const subscriptionResult = await db.query(
+        `INSERT INTO subscriptions 
+         (fan_id, creator_id, tier_name, price_cents, status, started_at, expires_at, auto_renew)
+         VALUES ($1, $2, $3, $4, 'pending', $5, $6, true)
+         RETURNING *`,
+        [user.id, creatorId, tierName || 'default', priceCents, now, expiresAt]
+      );
+
+      const subscription = subscriptionResult.rows[0];
+
+      // Generate CCBill payment link
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                     request.headers.get('origin') || 
+                     'http://localhost:3000';
+
+      const paymentLink = generateCCBillPaymentLink({
+        subscriptionId: subscription.id,
+        amountCents: priceCents,
+        userId: user.id,
+        creatorId,
+        transactionType: 'subscription',
+        returnUrl: `${baseUrl}/creators/${creatorId}?subscribed=true`,
+        failureUrl: `${baseUrl}/creators/${creatorId}/subscribe?error=payment_failed`,
+      });
+
+      return NextResponse.json(
+        {
+          subscription: {
+            id: subscription.id,
+            creatorId: subscription.creator_id,
+            status: subscription.status,
+            expiresAt: subscription.expires_at,
+          },
+          paymentUrl: paymentLink,
+          message: 'Payment required to complete subscription',
+        },
+        { status: 201 }
+      );
+    }
   } catch (error) {
     console.error('Subscription error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';

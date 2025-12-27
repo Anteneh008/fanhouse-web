@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { getCreatorEarnings, getCreatorLedger } from '@/lib/ledger';
+import Link from 'next/link';
 
 export default async function CreatorEarningsPage() {
   const user = await getCurrentUser();
@@ -168,6 +169,28 @@ export default async function CreatorEarningsPage() {
           )}
         </div>
 
+        {/* Request Payout Button */}
+        {earnings.pendingEarningsCents >= 1000 && (
+          <div className="mt-6 bg-white shadow rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-1">
+                  Request Payout
+                </h3>
+                <p className="text-sm text-gray-600">
+                  You have ${(earnings.pendingEarningsCents / 100).toFixed(2)} available for payout
+                </p>
+              </div>
+              <Link
+                href="/creator/payouts"
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+              >
+                Request Payout
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Info Box */}
         <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h3 className="text-sm font-medium text-blue-900 mb-2">
@@ -177,6 +200,7 @@ export default async function CreatorEarningsPage() {
             <li>Platform fee: 20% of each transaction</li>
             <li>Net amount: Amount you receive after fees</li>
             <li>Pending: Earnings not yet paid out</li>
+            <li>Minimum payout: $10.00</li>
             <li>Ledger is append-only for transparency</li>
           </ul>
         </div>
