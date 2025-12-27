@@ -172,11 +172,11 @@ export async function POST(
     );
 
     // Get post creator to notify them
-    const postResult = await db.query(
+    const postCreatorResult = await db.query(
       "SELECT creator_id FROM posts WHERE id = $1",
       [postId]
     );
-    const creatorId = postResult.rows[0]?.creator_id;
+    const creatorId = postCreatorResult.rows[0]?.creator_id;
 
     // Notify creator if comment is on their post (async, don't wait)
     if (creatorId && creatorId !== user.id) {

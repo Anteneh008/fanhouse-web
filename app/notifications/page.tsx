@@ -46,17 +46,17 @@ export default async function NotificationsPage() {
           email: row.related_user_email,
           displayName: row.related_user_display_name,
         }
-      : null,
-    relatedPostId: row.related_post_id,
-    relatedMessageId: row.related_message_id,
-    relatedTransactionId: row.related_transaction_id,
+      : undefined,
+    relatedPostId: row.related_post_id || undefined,
+    relatedMessageId: row.related_message_id || undefined,
+    relatedTransactionId: row.related_transaction_id || undefined,
     metadata: row.metadata || {},
     createdAt: row.created_at,
   }));
 
   return (
     <div className="min-h-screen bg-linear-to-r from-purple-900 via-blue-900 to-indigo-900">
-      <DashboardNav />
+      <DashboardNav userRole={user.role as "fan" | "creator" | "admin"} />
       <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-3 bg-linear-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">

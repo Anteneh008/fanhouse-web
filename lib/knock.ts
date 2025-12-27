@@ -19,7 +19,9 @@ const USE_MOCK = !KNOCK_API_KEY || process.env.NODE_ENV === 'development';
 let knockClient: Knock | null = null;
 
 if (KNOCK_API_KEY && !USE_MOCK) {
-  knockClient = new Knock(KNOCK_API_KEY);
+  knockClient = new Knock({
+    apiKey: KNOCK_API_KEY,
+  });
 }
 
 /**
@@ -95,16 +97,18 @@ export async function sendNotification(
     // Get user notification preferences
     const preferences = await getUserNotificationPreferences(data.userId);
     
-    // Determine which channels to use
-    const channels: string[] = [];
-    if (preferences.inAppEnabled && preferences[`${data.type}_enabled`] !== false) {
-      channels.push('in_app');
-    }
-    if (preferences.emailEnabled && preferences[`${data.type}_email_enabled`] !== false) {
-      channels.push('email');
+    // Check if user has disabled this notification type
+    const isTypeEnabled = preferences[`${data.type}_enabled`] !== false;
+    const isEmailEnabled = preferences[`${data.type}_email_enabled`] !== false;
+    
+    if (!preferences.inAppEnabled && !preferences.emailEnabled) {
+      console.log(`User ${data.userId} has disabled all notifications`);
+      // Still store in database but don't send
+      const notificationId = await storeNotificationInDatabase(data, null);
+      return { notificationId };
     }
 
-    if (channels.length === 0) {
+    if (!isTypeEnabled && !isEmailEnabled) {
       console.log(`User ${data.userId} has disabled notifications for type ${data.type}`);
       // Still store in database but don't send
       const notificationId = await storeNotificationInDatabase(data, null);
@@ -126,16 +130,17 @@ export async function sendNotification(
     if (data.relatedTransactionId) knockData.related_transaction_id = data.relatedTransactionId;
 
     // Send notification via Knock
-    const result = await knockClient!.notify(data.type, {
+    // Knock uses workflows.trigger() to send notifications
+    // Channels are configured in the workflow itself, not passed as a parameter
+    const result = await knockClient!.workflows.trigger(data.type, {
       recipients: [data.userId],
       data: knockData,
-      channels: channels,
     });
 
     // Store notification in database
     const notificationId = await storeNotificationInDatabase(
       data,
-      result.workflow_run_id || undefined
+      result.workflow_run_id || null
     );
 
     return {
