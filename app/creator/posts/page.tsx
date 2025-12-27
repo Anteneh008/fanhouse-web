@@ -257,26 +257,29 @@ export default async function CreatorPostsPage() {
                                     unoptimized
                                   />
                                 ) : (
-                                  <div className="w-full h-full flex items-center justify-center bg-white/5">
-                                    <svg
-                                      className="w-6 h-6 text-white/40"
-                                      fill="none"
-                                      viewBox="0 0 24 24"
-                                      stroke="currentColor"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                                  <div className="relative w-full h-full">
+                                    {media.thumbnailUrl ? (
+                                      <Image
+                                        src={media.thumbnailUrl}
+                                        alt="Video thumbnail"
+                                        fill
+                                        className="object-cover"
+                                        unoptimized
                                       />
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                      />
-                                    </svg>
+                                    ) : (
+                                      <div className="w-full h-full bg-black/40" />
+                                    )}
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                      <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
+                                        <svg
+                                          className="w-4 h-4 text-white ml-0.5"
+                                          fill="currentColor"
+                                          viewBox="0 0 20 20"
+                                        >
+                                          <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                                        </svg>
+                                      </div>
+                                    </div>
                                   </div>
                                 )}
                               </div>
