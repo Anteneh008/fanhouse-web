@@ -12,8 +12,15 @@ export default function DashboardNav({ userRole }: DashboardNavProps) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const isActive = (path: string) =>
-    pathname === path || pathname?.startsWith(path + "/");
+  const isActive = (path: string) => {
+    // Dashboard paths should match exactly, not as prefixes
+    const dashboardPaths = ["/dashboard", "/creator/dashboard", "/admin"];
+    if (dashboardPaths.includes(path)) {
+      return pathname === path;
+    }
+    // Other paths can match exactly or as prefixes
+    return pathname === path || pathname?.startsWith(path + "/");
+  };
 
   // Fan navigation
   const fanNav = [
@@ -115,7 +122,7 @@ export default function DashboardNav({ userRole }: DashboardNavProps) {
       : fanNav;
 
   return (
-    <nav className="bg-gradient-to-r from-purple-900 via-blue-900 to-indigo-900 backdrop-blur-lg border-b border-white/20 shadow-xl">
+    <nav className="bg-linear-to-r from-purple-900 via-blue-900 to-indigo-900 backdrop-blur-lg border-b border-white/20 shadow-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">
@@ -124,10 +131,10 @@ export default function DashboardNav({ userRole }: DashboardNavProps) {
                 href="/"
                 className="flex items-center space-x-2 hover:opacity-80 transition-opacity group"
               >
-                <div className="w-10 h-10 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 transform group-hover:scale-105">
+                <div className="w-10 h-10 bg-linear-to-r from-pink-500 via-purple-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 transform group-hover:scale-105">
                   <span className="text-white font-bold text-xl">FH</span>
                 </div>
-                <span className="text-xl font-bold bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">
+                <span className="text-xl font-bold bg-linear-to-r from-pink-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">
                   FanHouse
                 </span>
               </Link>
@@ -139,7 +146,7 @@ export default function DashboardNav({ userRole }: DashboardNavProps) {
                   href={item.href}
                   className={`inline-flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${
                     isActive(item.href)
-                      ? "bg-gradient-to-r from-blue-600/30 to-indigo-600/30 text-white shadow-lg border border-white/30 backdrop-blur-sm"
+                      ? "bg-linear-to-r from-blue-600/30 to-indigo-600/30 text-white shadow-lg border border-white/30 backdrop-blur-sm"
                       : "text-white/70 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/20"
                   }`}
                 >
@@ -236,7 +243,7 @@ export default function DashboardNav({ userRole }: DashboardNavProps) {
                 onClick={() => setIsMenuOpen(false)}
                 className={`flex items-center space-x-2 px-4 py-3 rounded-xl text-base font-semibold transition-all duration-300 ${
                   isActive(item.href)
-                    ? "bg-gradient-to-r from-blue-600/30 to-indigo-600/30 text-white shadow-lg border border-white/30 backdrop-blur-sm"
+                    ? "bg-linear-to-r from-blue-600/30 to-indigo-600/30 text-white shadow-lg border border-white/30 backdrop-blur-sm"
                     : "text-white/70 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/20"
                 }`}
               >
