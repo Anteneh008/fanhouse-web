@@ -198,3 +198,55 @@ export interface PostWithDetails extends Post {
   hasAccess: boolean; // Whether current user can view this post
 }
 
+// Messaging system types
+export type MessageType = 'text' | 'image' | 'video';
+export type MessagePaymentStatus = 'free' | 'pending' | 'paid' | 'declined';
+
+export interface MessageThread {
+  id: string;
+  fanId: string;
+  creatorId: string;
+  lastMessageAt: Date;
+  lastMessagePreview: string | null;
+  fanUnreadCount: number;
+  creatorUnreadCount: number;
+  isArchivedByFan: boolean;
+  isArchivedByCreator: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  // Populated fields
+  fan?: {
+    id: string;
+    email: string;
+    displayName?: string | null;
+  };
+  creator?: {
+    id: string;
+    email: string;
+    displayName?: string | null;
+  };
+}
+
+export interface Message {
+  id: string;
+  threadId: string;
+  senderId: string;
+  recipientId: string;
+  content: string;
+  messageType: MessageType;
+  mediaUrl: string | null;
+  priceCents: number;
+  isPaid: boolean;
+  paymentStatus: MessagePaymentStatus;
+  transactionId: string | null;
+  isRead: boolean;
+  readAt: Date | null;
+  createdAt: Date;
+  // Populated fields
+  sender?: {
+    id: string;
+    email: string;
+    displayName?: string | null;
+  };
+}
+

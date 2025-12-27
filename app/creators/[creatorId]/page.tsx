@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import db from '@/lib/db';
 import Link from 'next/link';
+import MessageButton from '@/app/components/MessageButton';
 
 export default async function CreatorProfilePage({
   params,
@@ -117,18 +118,24 @@ export default async function CreatorProfilePage({
                 )}
               </div>
             </div>
-            <div className="shrink-0">
+            <div className="shrink-0 flex flex-col space-y-2">
               {isSubscribed ? (
-                <span className="px-6 py-3 bg-green-100 text-green-800 rounded-md font-medium">
+                <span className="px-6 py-3 bg-green-100 text-green-800 rounded-md font-medium text-center">
                   Subscribed
                 </span>
               ) : (
                 <Link
                   href={`/creators/${creatorId}/subscribe`}
-                  className="inline-block px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+                  className="inline-block px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium text-center"
                 >
                   Subscribe
                 </Link>
+              )}
+              {user && user.role === 'fan' && (
+                <MessageButton
+                  creatorId={creatorId}
+                  className="px-6 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 font-medium"
+                />
               )}
             </div>
           </div>

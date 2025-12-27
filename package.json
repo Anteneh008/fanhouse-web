@@ -11,6 +11,7 @@
     "db:create-admin": "node scripts/create-admin.js"
   },
   "dependencies": {
+    "ably": "^2.16.0",
     "bcrypt": "^6.0.0",
     "dotenv": "^17.2.3",
     "jose": "^6.1.3",

@@ -1,6 +1,7 @@
 import { getCurrentUser } from '@/lib/auth';
 import db from '@/lib/db';
 import Link from 'next/link';
+import MessageButton from '@/app/components/MessageButton';
 
 export default async function CreatorsPage() {
   const user = await getCurrentUser();
@@ -116,24 +117,32 @@ export default async function CreatorsPage() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex space-x-2">
-                      <Link
-                        href={`/creators/${creator.id}`}
-                        className="flex-1 px-4 py-2 bg-gray-100 text-gray-900 rounded-md hover:bg-gray-200 text-center font-medium text-sm"
-                      >
-                        View Profile
-                      </Link>
-                      {isSubscribed ? (
-                        <span className="flex-1 px-4 py-2 bg-green-100 text-green-800 rounded-md text-center font-medium text-sm">
-                          Subscribed
-                        </span>
-                      ) : (
+                    <div className="space-y-2">
+                      <div className="flex space-x-2">
                         <Link
-                          href={`/creators/${creator.id}/subscribe`}
-                          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-center font-medium text-sm"
+                          href={`/creators/${creator.id}`}
+                          className="flex-1 px-4 py-2 bg-gray-100 text-gray-900 rounded-md hover:bg-gray-200 text-center font-medium text-sm"
                         >
-                          Subscribe
+                          View Profile
                         </Link>
+                        {isSubscribed ? (
+                          <span className="flex-1 px-4 py-2 bg-green-100 text-green-800 rounded-md text-center font-medium text-sm">
+                            Subscribed
+                          </span>
+                        ) : (
+                          <Link
+                            href={`/creators/${creator.id}/subscribe`}
+                            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-center font-medium text-sm"
+                          >
+                            Subscribe
+                          </Link>
+                        )}
+                      </div>
+                      {user && user.role === 'fan' && (
+                        <MessageButton
+                          creatorId={creator.id}
+                          className="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 font-medium text-sm"
+                        />
                       )}
                     </div>
                   </div>
