@@ -1,229 +1,214 @@
-# CCBill Integration - Implementation Summary
+# CCBill Integration Guide
 
-## Overview
+Based on the FanHouse documentation, **CCBill** is the specified payment platform for billing and subscription integration.
 
-CCBill has been integrated as the payment processor for FanHouse, following the specifications in the build plan documentation. This integration handles subscriptions, PPV purchases, and tips.
+## Why CCBill?
 
-## What Was Implemented
+According to the documentation:
+- CCBill is explicitly mentioned as the payment provider for:
+  - Subscriptions (recurring)
+  - One-time PPV purchases
+  - Tips
+- CCBill webhooks update ledger + entitlements → emit events
+- CCBill supports adult/NSFW content platforms (critical for FanHouse)
 
-### 1. CCBill Core Module (`lib/ccbill.ts`)
+## CCBill Integration Requirements
 
-**Features:**
-- Payment link generation for subscriptions, PPV, and tips
-- Webhook signature verification
-- Payment event parsing
-- Configuration management
+### 1. CCBill Account Setup
 
-**Key Functions:**
-- `getCCBillConfig()` - Loads CCBill credentials from environment
-- `generateCCBillPaymentLink()` - Creates secure payment URLs
-- `verifyCCBillWebhook()` - Validates webhook authenticity
-- `parseCCBillWebhook()` - Extracts event data from webhooks
+1. **Sign up for CCBill account**
+   - Go to [ccbill.com](https://www.ccbill.com)
+   - Apply for a merchant account
+   - Complete KYC/verification process
+   - Get approved for adult content (if applicable)
 
-### 2. Payment Link API (`app/api/payments/ccbill/link/route.ts`)
+2. **Get Your Credentials**
+   - Client Account Number
+   - Subaccount Number
+   - FlexForms API Key
+   - Webhook Secret Key
 
-**Endpoint:** `POST /api/payments/ccbill/link`
+### 2. Environment Variables
 
-**Purpose:** Generates CCBill payment URLs for frontend redirect
+Add these to your `.env.local` and Vercel:
 
-**Request:**
-```json
-{
-  "creatorId": "uuid",
-  "transactionType": "subscription" | "ppv" | "tip",
-  "amountCents": 999,
-  "subscriptionId": "uuid", // Optional
-  "postId": "uuid" // Optional, for PPV
-}
+```env
+CCBILL_CLIENT_ACCOUNT_NUMBER=your_client_account_number
+CCBILL_SUBACCOUNT_NUMBER=your_subaccount_number
+CCBILL_FLEXFORMS_API_KEY=your_flexforms_api_key
+CCBILL_WEBHOOK_SECRET=your_webhook_secret
+CCBILL_SALT_VALUE=your_salt_value
 ```
 
-**Response:**
-```json
-{
-  "paymentUrl": "https://bill.ccbill.com/...",
-  "transactionType": "subscription",
-  "amountCents": 999
-}
-```
+### 3. Integration Points
 
-### 3. Webhook Handler (`app/api/webhooks/ccbill/route.ts`)
+#### A. Subscription Payments
+
+**Flow:**
+1. User clicks "Subscribe" on creator page
+2. Generate CCBill payment link using FlexForms
+3. Redirect user to CCBill payment page
+4. CCBill processes payment
+5. CCBill sends webhook to your server
+6. Update subscription status in database
+7. Grant entitlement to user
+8. Create ledger entry for creator earnings
+
+**API Endpoint:** `POST /api/subscriptions/create`
+- Generate CCBill payment link
+- Store pending subscription in database
+- Return payment URL to frontend
+
+#### B. PPV (Pay-Per-View) Purchases
+
+**Flow:**
+1. User clicks "Unlock" on PPV post
+2. Generate CCBill payment link for one-time purchase
+3. Redirect to CCBill
+4. CCBill processes payment
+5. Webhook updates entitlement
+6. User can now view content
+
+**API Endpoint:** `POST /api/posts/[postId]/unlock`
+- Currently uses mock payment
+- Replace with CCBill integration
+
+#### C. Tips
+
+**Flow:**
+1. User sends tip to creator
+2. Generate CCBill payment link
+3. Process payment
+4. Webhook creates transaction
+5. Add to creator ledger
+
+**API Endpoint:** `POST /api/creators/[creatorId]/tip`
+- Generate CCBill payment link
+- Store pending tip transaction
+
+### 4. Webhook Handler
 
 **Endpoint:** `POST /api/webhooks/ccbill`
 
-**Purpose:** Processes CCBill payment events in real-time
+**Required Webhook Events:**
+- `NewSaleSuccess` - Payment successful
+- `NewSaleFailure` - Payment failed
+- `RenewalSuccess` - Subscription renewed
+- `RenewalFailure` - Renewal failed
+- `Chargeback` - Chargeback received
+- `Refund` - Refund processed
 
-**Handles:**
-- `subscription.created` - New subscription activated
-- `subscription.renewed` - Monthly renewal
-- `subscription.canceled` - User canceled subscription
-- `payment.completed` - Payment succeeded
-- `payment.failed` - Payment failed
-- `chargeback.created` - Chargeback initiated
+**Webhook Processing:**
+1. Verify webhook signature
+2. Parse webhook payload
+3. Update transaction status
+4. Update subscription status (if applicable)
+5. Grant/revoke entitlements
+6. Create ledger entries
+7. Emit events for notifications
 
-**Actions:**
-- Updates subscription status
-- Creates transaction records
-- Creates ledger entries
-- Updates entitlements (for PPV)
-- Handles refunds/chargebacks
+### 5. Implementation Steps
 
-### 4. Updated Subscription API (`app/api/subscriptions/route.ts`)
-
-**Changes:**
-- Checks if CCBill is configured
-- If configured: Creates pending subscription and returns payment URL
-- If not configured: Falls back to mock payment flow (dev mode)
-- Controlled by `USE_MOCK_PAYMENTS` environment variable
-
-### 5. Frontend Updates
-
-**SubscribeForm (`app/creators/[creatorId]/subscribe/SubscribeForm.tsx`):**
-- Handles payment URL redirect
-- Redirects to CCBill when payment URL is returned
-- Falls back to direct redirect for mock payments
-
-**Payment Success Page (`app/payments/success/page.tsx`):**
-- Confirms successful payment
-- Redirects to creator profile or subscriptions
-
-**Payment Failure Page (`app/payments/failure/page.tsx`):**
-- Shows payment error
-- Allows retry or navigation
-
-## Payment Flow
-
-### Subscription Flow
-
-```
-1. User clicks "Subscribe"
-   ↓
-2. Frontend → POST /api/subscriptions
-   ↓
-3. API creates pending subscription
-   ↓
-4. API generates CCBill payment link
-   ↓
-5. Frontend redirects to CCBill
-   ↓
-6. User enters payment details
-   ↓
-7. CCBill processes payment
-   ↓
-8a. Success → Redirect to /payments/success
-   ↓
-8b. Failure → Redirect to /payments/failure
-   ↓
-9. CCBill sends webhook to /api/webhooks/ccbill
-   ↓
-10. Webhook handler:
-    - Verifies signature
-    - Updates subscription to 'active'
-    - Creates transaction
-    - Creates ledger entry
-```
-
-### PPV Flow
-
-```
-1. User clicks "Unlock" on PPV post
-   ↓
-2. Frontend → POST /api/payments/ccbill/link
-   ↓
-3. API generates CCBill payment link
-   ↓
-4. User completes payment on CCBill
-   ↓
-5. Webhook creates entitlement
-   ↓
-6. User can now view post
-```
-
-## Environment Variables
-
-Add to `.env.local`:
-
+#### Step 1: Install CCBill SDK
 ```bash
-# CCBill Configuration (Required for production)
-CCBILL_CLIENT_ACCOUNT_NUMBER=your_client_account_number
-CCBILL_SUBACCOUNT_NUMBER=your_subaccount_number
-CCBILL_SALT=your_salt_key
-CCBILL_WEBHOOK_SECRET=your_webhook_secret
-
-# Optional
-CCBILL_FLEXFORMS_ID=your_flexforms_id
-CCBILL_CURRENCY_CODE=840  # 840 = USD
-
-# Development
-USE_MOCK_PAYMENTS=true   # Set to false when using real CCBill
-NEXT_PUBLIC_APP_URL=http://localhost:3000  # For return URLs
+npm install ccbill-js-sdk
+# or use direct API calls
 ```
 
-## Testing
+#### Step 2: Create Payment Link Generator
 
-### Development Mode
+```typescript
+// lib/ccbill.ts
+export function generatePaymentLink(params: {
+  amountCents: number;
+  currency: string;
+  subscriptionId?: string;
+  postId?: string;
+  userId: string;
+  creatorId: string;
+  type: 'subscription' | 'ppv' | 'tip';
+}) {
+  // Generate CCBill FlexForms URL
+  // Include callback URLs
+  // Include metadata for webhook processing
+}
+```
 
-Set `USE_MOCK_PAYMENTS=true`:
-- Payments are automatically approved
-- No real money processed
-- Useful for local development
+#### Step 3: Create Webhook Handler
 
-### CCBill Test Mode
+```typescript
+// app/api/webhooks/ccbill/route.ts
+export async function POST(request: NextRequest) {
+  // Verify signature
+  // Parse payload
+  // Update database
+  // Grant entitlements
+  // Create ledger entries
+}
+```
 
-1. Use CCBill test credentials
-2. Use test credit cards (provided by CCBill)
-3. Test webhooks in sandbox
-4. Verify end-to-end flow
+#### Step 4: Update Existing Endpoints
 
-### Production
+- Replace mock payment in `/api/posts/[postId]/unlock`
+- Replace mock payment in `/api/subscriptions/create`
+- Add tip endpoint
 
-1. Complete CCBill merchant application
-2. Get approved (1-2 weeks)
-3. Add production credentials
-4. Configure webhook URL in CCBill admin
-5. Test with small transactions
-6. Monitor webhook logs
+### 6. Testing
 
-## Security
+CCBill provides:
+- **Sandbox/Test Mode** - For development
+- **Test Cards** - For testing different scenarios
+- **Webhook Testing Tool** - For testing webhook handling
 
-1. **Webhook Verification**: All webhooks are signature-verified
-2. **HTTPS Only**: Webhooks require HTTPS
-3. **Salt Key**: Never exposed to client
-4. **Idempotency**: Duplicate webhooks handled gracefully
-5. **Transaction IDs**: Stored for reconciliation
+### 7. Production Checklist
 
-## Database Changes
+- [ ] CCBill account approved
+- [ ] Webhook endpoint secured (HTTPS, signature verification)
+- [ ] Error handling for failed payments
+- [ ] Chargeback handling
+- [ ] Refund processing
+- [ ] Subscription renewal logic
+- [ ] Ledger entries for all transactions
+- [ ] Entitlement granting/revocation
+- [ ] Email notifications for payment events
 
-No schema changes required. The existing tables support CCBill:
-- `subscriptions` - Status can be 'pending' → 'active'
-- `transactions` - Stores CCBill transaction IDs
-- `ledger_entries` - Tracks earnings
-- `entitlements` - For PPV access
+### 8. Security Considerations
 
-## Next Steps
+- **Webhook Signature Verification**: Always verify CCBill webhook signatures
+- **HTTPS Only**: Webhook endpoint must use HTTPS
+- **Idempotency**: Handle duplicate webhooks gracefully
+- **Rate Limiting**: Protect webhook endpoint from abuse
+- **Logging**: Log all payment events for audit trail
 
-1. **Get CCBill Account**: Sign up at https://www.ccbill.com/
-2. **Complete Application**: Provide business details
-3. **Get Approved**: Wait 1-2 weeks for approval
-4. **Configure Credentials**: Add to `.env.local`
-5. **Set Webhook URL**: In CCBill admin panel
-6. **Test**: Use CCBill test environment
-7. **Go Live**: Switch to production credentials
+### 9. Documentation References
 
-## Documentation
+- [CCBill Developer Documentation](https://www.ccbill.com/developers/)
+- [CCBill FlexForms API](https://www.ccbill.com/developers/flexforms/)
+- [CCBill Webhook Guide](https://www.ccbill.com/developers/webhooks/)
 
-See `CCBILL-SETUP.md` for detailed setup instructions.
+### 10. Current Status
 
-## Support
+**Current Implementation:**
+- ✅ Mock payment system in place
+- ✅ Transaction table structure ready
+- ✅ Ledger system implemented
+- ✅ Entitlement system ready
+- ❌ CCBill integration not yet implemented
 
-- **CCBill Support**: https://support.ccbill.com/
-- **CCBill Docs**: https://docs.ccbill.com/
-- **CCBill Admin**: https://admin.ccbill.com/
+**Next Steps:**
+1. Set up CCBill account
+2. Implement payment link generation
+3. Implement webhook handler
+4. Replace mock payments with CCBill
+5. Test end-to-end payment flow
 
-## Notes
+---
 
-- CCBill is NSFW-friendly and explicitly supports adult content
-- Recurring subscriptions are built-in
-- Webhooks provide real-time payment updates
-- Chargeback handling is supported
-- Global payment acceptance
+## Alternative Considerations
 
+While CCBill is specified in the documentation, you may also consider:
+- **Stripe** (if adult content policy allows)
+- **Crypto payments** (as mentioned in docs)
+- **Other adult-friendly processors**
+
+However, **CCBill is the recommended platform** per the documentation for its adult content support and reliability.

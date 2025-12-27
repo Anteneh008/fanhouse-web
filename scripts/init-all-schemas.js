@@ -24,6 +24,7 @@ const schemaFiles = [
   'db-schema-content.sql',      // Posts, transactions, subscriptions, entitlements, ledger
   'db-schema-messaging.sql',   // Message threads and messages (depends on transactions)
   'db-schema-payouts.sql',      // Payouts table
+  'db-schema-likes-comments.sql', // Post likes and comments
 ];
 
 async function initAllSchemas() {

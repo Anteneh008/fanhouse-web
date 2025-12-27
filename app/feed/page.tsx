@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import AuthNav from "@/app/components/AuthNav";
@@ -25,6 +25,7 @@ interface Post {
     thumbnailUrl: string | null;
   }>;
   hasAccess: boolean;
+  isLiked?: boolean;
 }
 
 interface User {
@@ -33,16 +34,203 @@ interface User {
   role: "fan" | "creator" | "admin";
 }
 
+interface Comment {
+  id: string;
+  postId: string;
+  userId: string;
+  content: string;
+  parentCommentId: string | null;
+  createdAt: string;
+  user: {
+    email: string;
+    displayName: string | null;
+  };
+}
+
 export default function FeedPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [user, setUser] = useState<User | null>(null);
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [commentsOpen, setCommentsOpen] = useState<Set<string>>(new Set());
+  const [comments, setComments] = useState<Record<string, Comment[]>>({});
+  const [commentText, setCommentText] = useState<Record<string, string>>({});
+  const [postingComment, setPostingComment] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchUser();
     fetchPosts();
   }, []);
+
+  const checkLikedStatus = useCallback(
+    async (postId: string) => {
+      if (!user) return;
+      try {
+        const res = await fetch(`/api/posts/${postId}/like`);
+        if (res.ok) {
+          const data = await res.json();
+          setLikedPosts((prev) => {
+            const newSet = new Set(prev);
+            if (data.liked) {
+              newSet.add(postId);
+            } else {
+              newSet.delete(postId);
+            }
+            return newSet;
+          });
+        }
+      } catch (error) {
+        console.error("Error checking like status:", error);
+      }
+    },
+    [user]
+  );
+
+  // Fetch liked status for all posts
+  useEffect(() => {
+    if (user && posts.length > 0) {
+      posts.forEach((post) => {
+        checkLikedStatus(post.id);
+      });
+    }
+  }, [user, posts, checkLikedStatus]);
+
+  const handleLike = async (postId: string) => {
+    if (!user) {
+      alert("Please log in to like posts");
+      return;
+    }
+
+    const isLiked = likedPosts.has(postId);
+    const method = isLiked ? "DELETE" : "POST";
+
+    try {
+      const res = await fetch(`/api/posts/${postId}/like`, {
+        method,
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || "Failed to like post");
+        return;
+      }
+
+      const data = await res.json();
+
+      // Update liked status
+      setLikedPosts((prev) => {
+        const newSet = new Set(prev);
+        if (data.liked) {
+          newSet.add(postId);
+        } else {
+          newSet.delete(postId);
+        }
+        return newSet;
+      });
+
+      // Update likes count in posts
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.id === postId ? { ...post, likesCount: data.likesCount } : post
+        )
+      );
+    } catch (error) {
+      console.error("Error liking post:", error);
+      alert("Failed to like post");
+    }
+  };
+
+  const fetchComments = async (postId: string) => {
+    try {
+      const res = await fetch(`/api/posts/${postId}/comments`);
+      if (res.ok) {
+        const data = await res.json();
+        setComments((prev) => ({
+          ...prev,
+          [postId]: data.comments || [],
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+    }
+  };
+
+  const toggleComments = (postId: string) => {
+    setCommentsOpen((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(postId)) {
+        newSet.delete(postId);
+      } else {
+        newSet.add(postId);
+        if (!comments[postId]) {
+          fetchComments(postId);
+        }
+      }
+      return newSet;
+    });
+  };
+
+  const handleComment = async (postId: string) => {
+    if (!user) {
+      alert("Please log in to comment");
+      return;
+    }
+
+    const text = commentText[postId]?.trim();
+    if (!text || text.length === 0) {
+      alert("Please enter a comment");
+      return;
+    }
+
+    setPostingComment((prev) => new Set(prev).add(postId));
+
+    try {
+      const res = await fetch(`/api/posts/${postId}/comments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: text }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || "Failed to post comment");
+        return;
+      }
+
+      const data = await res.json();
+
+      // Clear comment input
+      setCommentText((prev) => {
+        const newText = { ...prev };
+        delete newText[postId];
+        return newText;
+      });
+
+      // Refresh comments
+      await fetchComments(postId);
+
+      // Update comments count
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.id === postId
+            ? { ...post, commentsCount: data.commentsCount }
+            : post
+        )
+      );
+    } catch (error) {
+      console.error("Error posting comment:", error);
+      alert("Failed to post comment");
+    } finally {
+      setPostingComment((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(postId);
+        return newSet;
+      });
+    }
+  };
 
   const fetchUser = async () => {
     try {
@@ -66,7 +254,17 @@ export default function FeedPage() {
         throw new Error(data.error || "Failed to load feed");
       }
 
-      setPosts(data.posts || []);
+      const postsData = data.posts || [];
+      setPosts(postsData);
+
+      // Initialize liked posts from API response
+      const likedSet = new Set<string>();
+      postsData.forEach((post: Post) => {
+        if (post.isLiked) {
+          likedSet.add(post.id);
+        }
+      });
+      setLikedPosts(likedSet);
     } catch (error) {
       setError(error instanceof Error ? error.message : "Failed to load feed");
     } finally {
@@ -242,11 +440,20 @@ export default function FeedPage() {
                     )}
 
                     {/* Post Actions */}
-                    <div className="px-5 pb-5 flex items-center space-x-6 text-sm">
-                      <button className="flex items-center space-x-2 text-white/70 hover:text-pink-400 transition-colors">
+                    <div className="px-5 pb-5 flex items-center space-x-6 text-sm border-t border-white/10 pt-4">
+                      <button
+                        onClick={() => handleLike(post.id)}
+                        className={`flex items-center space-x-2 transition-colors ${
+                          likedPosts.has(post.id)
+                            ? "text-pink-400 hover:text-pink-300"
+                            : "text-white/70 hover:text-pink-400"
+                        }`}
+                      >
                         <svg
                           className="w-5 h-5"
-                          fill="none"
+                          fill={
+                            likedPosts.has(post.id) ? "currentColor" : "none"
+                          }
                           viewBox="0 0 24 24"
                           stroke="currentColor"
                         >
@@ -259,7 +466,14 @@ export default function FeedPage() {
                         </svg>
                         <span className="font-medium">{post.likesCount}</span>
                       </button>
-                      <button className="flex items-center space-x-2 text-white/70 hover:text-blue-400 transition-colors">
+                      <button
+                        onClick={() => toggleComments(post.id)}
+                        className={`flex items-center space-x-2 transition-colors ${
+                          commentsOpen.has(post.id)
+                            ? "text-blue-400 hover:text-blue-300"
+                            : "text-white/70 hover:text-blue-400"
+                        }`}
+                      >
                         <svg
                           className="w-5 h-5"
                           fill="none"
@@ -278,6 +492,90 @@ export default function FeedPage() {
                         </span>
                       </button>
                     </div>
+
+                    {/* Comments Section */}
+                    {commentsOpen.has(post.id) && (
+                      <div className="px-5 pb-5 border-t border-white/10 pt-4 space-y-4">
+                        {/* Comment Form */}
+                        {user && (
+                          <div className="space-y-3">
+                            <textarea
+                              value={commentText[post.id] || ""}
+                              onChange={(e) =>
+                                setCommentText((prev) => ({
+                                  ...prev,
+                                  [post.id]: e.target.value,
+                                }))
+                              }
+                              placeholder="Write a comment..."
+                              rows={3}
+                              className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50 transition-all duration-300 resize-none"
+                              maxLength={5000}
+                            />
+                            <button
+                              onClick={() => handleComment(post.id)}
+                              disabled={
+                                postingComment.has(post.id) ||
+                                !commentText[post.id]?.trim()
+                              }
+                              className="px-6 py-2 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:transform-none"
+                            >
+                              {postingComment.has(post.id)
+                                ? "Posting..."
+                                : "Post Comment"}
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Comments List */}
+                        <div className="space-y-4 max-h-96 overflow-y-auto">
+                          {comments[post.id] && comments[post.id].length > 0 ? (
+                            comments[post.id].map((comment) => (
+                              <div
+                                key={comment.id}
+                                className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10"
+                              >
+                                <div className="flex items-start space-x-3">
+                                  <div className="w-8 h-8 rounded-full bg-linear-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                                    {(
+                                      comment.user.displayName ||
+                                      comment.user.email
+                                    )
+                                      .charAt(0)
+                                      .toUpperCase()}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center space-x-2 mb-1">
+                                      <span className="font-semibold text-white text-sm">
+                                        {comment.user.displayName ||
+                                          comment.user.email}
+                                      </span>
+                                      <span className="text-xs text-white/50">
+                                        {new Date(
+                                          comment.createdAt
+                                        ).toLocaleDateString("en-US", {
+                                          month: "short",
+                                          day: "numeric",
+                                          hour: "numeric",
+                                          minute: "2-digit",
+                                        })}
+                                      </span>
+                                    </div>
+                                    <p className="text-white/90 text-sm whitespace-pre-wrap overflow-wrap-anywhere">
+                                      {comment.content}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-white/60 text-sm text-center py-4">
+                              No comments yet. Be the first to comment!
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div className="p-8 text-center">

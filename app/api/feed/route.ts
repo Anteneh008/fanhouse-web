@@ -67,6 +67,16 @@ export async function GET(request: NextRequest) {
     // Filter posts based on access
     const accessiblePosts = [];
     for (const row of postsResult.rows) {
+      // Check if user has liked this post
+      let isLiked = false;
+      if (userId) {
+        const likeResult = await db.query(
+          "SELECT id FROM post_likes WHERE post_id = $1 AND user_id = $2",
+          [row.id, userId]
+        );
+        isLiked = likeResult.rows.length > 0;
+      }
+
       // Free posts are accessible to everyone
       if (row.visibility_type === "free") {
         accessiblePosts.push({
@@ -84,6 +94,7 @@ export async function GET(request: NextRequest) {
           createdAt: row.created_at,
           media: row.media || [],
           hasAccess: true,
+          isLiked,
         });
         continue;
       }
@@ -107,6 +118,7 @@ export async function GET(request: NextRequest) {
             createdAt: row.created_at,
             media: row.media || [],
             hasAccess: true,
+            isLiked,
           });
         } else {
           // Show post but mark as locked - hide all media except thumbnails
@@ -131,6 +143,7 @@ export async function GET(request: NextRequest) {
               thumbnailUrl: m.thumbnailUrl,
             })) || [],
             hasAccess: false,
+            isLiked,
           });
         }
       } else {
@@ -156,6 +169,7 @@ export async function GET(request: NextRequest) {
             thumbnailUrl: m.thumbnailUrl,
           })) || [],
           hasAccess: false,
+          isLiked: false,
         });
       }
     }
