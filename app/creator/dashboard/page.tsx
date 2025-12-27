@@ -460,7 +460,7 @@ export default async function CreatorDashboardPage() {
               </dl>
               <Link
                 href="/creator/profile"
-                className="mt-6 block text-sm text-white/80 hover:text-white font-medium flex items-center space-x-1 transition-colors"
+                className="mt-6 flex text-sm text-white/80 hover:text-white font-medium items-center space-x-1 transition-colors"
               >
                 <span>Edit Profile</span>
                 <svg
@@ -559,7 +559,7 @@ export default async function CreatorDashboardPage() {
               </div>
               <Link
                 href="/creator/earnings"
-                className="mt-6 block text-sm text-white/80 hover:text-white font-medium flex items-center space-x-1 transition-colors"
+                className="mt-6 flex text-sm text-white/80 hover:text-white font-medium items-center space-x-1 transition-colors"
               >
                 <span>View Details</span>
                 <svg
