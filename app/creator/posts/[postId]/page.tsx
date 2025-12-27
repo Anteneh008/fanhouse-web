@@ -241,7 +241,7 @@ export default async function CreatorPostPage({
                         <div className="relative w-full aspect-square bg-black/20 rounded-xl overflow-hidden">
                           <video
                             src={media.fileUrl}
-                            poster={media.thumbnailUrl}
+                            poster={media.thumbnailUrl || undefined}
                             controls
                             className="w-full h-full object-cover"
                             preload="metadata"
