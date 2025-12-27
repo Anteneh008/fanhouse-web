@@ -9,10 +9,12 @@
     "lint": "eslint",
     "db:init": "node scripts/init-db.js",
     "db:init-all": "node scripts/init-all-schemas.js",
-    "db:create-admin": "node scripts/create-admin.js"
+    "db:create-admin": "node scripts/create-admin.js",
+    "db:migrate-mux": "node scripts/migrate-add-mux-columns.js"
   },
   "dependencies": {
     "@knocklabs/node": "^1.25.0",
+    "@mux/mux-node": "^12.8.1",
     "ably": "^2.16.0",
     "bcrypt": "^6.0.0",
     "browser-image-compression": "^2.0.2",

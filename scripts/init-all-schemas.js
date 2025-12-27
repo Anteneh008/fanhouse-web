@@ -26,6 +26,7 @@ const schemaFiles = [
   'db-schema-payouts.sql',      // Payouts table
   'db-schema-likes-comments.sql', // Post likes and comments
   'db-schema-notifications.sql', // Notifications and notification preferences
+  'db-schema-livestreams.sql', // Live streams (depends on users and content)
 ];
 
 async function initAllSchemas() {
@@ -37,7 +38,7 @@ async function initAllSchemas() {
     }
     
     for (const schemaFile of schemaFiles) {
-      const schemaPath = path.join(__dirname, '..', 'lib', schemaFile);
+      const schemaPath = path.join(__dirname, '..', schemaFile.startsWith('lib/') ? schemaFile : `lib/${schemaFile}`);
       
       if (!fs.existsSync(schemaPath)) {
         console.warn(`⚠️  Schema file not found: ${schemaFile}, skipping...`);

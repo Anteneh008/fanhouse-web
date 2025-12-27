@@ -70,6 +70,16 @@ export default function AuthNav({ user }: AuthNavProps) {
                     Feed
                   </Link>
                   <Link
+                    href="/streams"
+                    className={`px-4 py-2 rounded-lg transition-colors font-medium ${
+                      isActive('/streams')
+                        ? 'bg-white/20 text-white'
+                        : 'text-white/80 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    Streams
+                  </Link>
+                  <Link
                     href="/creators"
                     className={`px-4 py-2 rounded-lg transition-colors font-medium ${
                       isActive('/creators')
@@ -238,6 +248,17 @@ export default function AuthNav({ user }: AuthNavProps) {
                       }`}
                     >
                       Feed
+                    </Link>
+                    <Link
+                      href="/streams"
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`block px-4 py-2 rounded-lg text-base font-medium ${
+                        isActive('/streams')
+                          ? 'bg-white/20 text-white'
+                          : 'text-white/80 hover:bg-white/10'
+                      }`}
+                    >
+                      Streams
                     </Link>
                     <Link
                       href="/creators"

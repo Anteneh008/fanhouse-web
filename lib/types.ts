@@ -91,6 +91,10 @@ export type TransactionType = 'subscription' | 'ppv' | 'tip';
 export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'refunded';
 export type LedgerEntryType = 'earnings' | 'payout' | 'refund' | 'adjustment';
 
+// Live streaming types
+export type StreamStatus = 'scheduled' | 'live' | 'ended' | 'cancelled';
+export type StreamVisibility = 'free' | 'subscriber' | 'ppv';
+
 export interface Post {
   id: string;
   creatorId: string;
@@ -248,5 +252,70 @@ export interface Message {
     email: string;
     displayName?: string | null;
   };
+}
+
+// Live streaming interfaces
+export interface LiveStream {
+  id: string;
+  creatorId: string;
+  title: string;
+  description: string | null;
+  streamKey: string;
+  playbackUrl: string | null;
+  thumbnailUrl: string | null;
+  status: StreamStatus;
+  visibilityType: StreamVisibility;
+  priceCents: number;
+  viewerCount: number;
+  peakViewerCount: number;
+  startedAt: Date | null;
+  endedAt: Date | null;
+  scheduledStartAt: Date | null;
+  replayUrl: string | null;
+  replayPostId: string | null;
+  isDisabled: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  // Populated fields
+  creator?: {
+    id: string;
+    email: string;
+    displayName?: string | null;
+  };
+}
+
+export interface StreamViewer {
+  id: string;
+  streamId: string;
+  userId: string;
+  joinedAt: Date;
+  leftAt: Date | null;
+  watchDurationSeconds: number;
+}
+
+export interface StreamChatMessage {
+  id: string;
+  streamId: string;
+  userId: string;
+  message: string;
+  isModerator: boolean;
+  isDeleted: boolean;
+  deletedAt: Date | null;
+  createdAt: Date;
+  // Populated fields
+  user?: {
+    id: string;
+    email: string;
+    displayName?: string | null;
+  };
+}
+
+export interface StreamEntitlement {
+  id: string;
+  streamId: string;
+  userId: string;
+  entitlementType: EntitlementType;
+  transactionId: string | null;
+  grantedAt: Date;
 }
 
