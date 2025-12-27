@@ -31,6 +31,14 @@ export default function NewPostPage() {
       setUploadingFile(file.name);
       setError("");
 
+      // Validate file size (4MB limit for Vercel)
+      const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB
+      if (file.size > MAX_FILE_SIZE) {
+        throw new Error(
+          `File is too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB`
+        );
+      }
+
       const formData = new FormData();
       formData.append("file", file);
       formData.append(
@@ -43,13 +51,34 @@ export default function NewPostPage() {
         body: formData,
       });
 
-      const data = await res.json();
+      // Check if response is JSON
+      const contentType = res.headers.get("content-type");
 
-      if (!res.ok) {
-        throw new Error(data.error || "Upload failed");
+      if (contentType && contentType.includes("application/json")) {
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || "Upload failed");
+        }
+
+        // Type assertion - API should return UploadedMedia
+        const uploadedMedia: UploadedMedia = {
+          fileUrl: data.fileUrl,
+          fileType: data.fileType,
+          fileSize: data.fileSize,
+          mimeType: data.mimeType,
+        };
+
+        setUploadedMedia((prev) => [...prev, uploadedMedia]);
+      } else {
+        // If not JSON, it's likely an error page (e.g., 413 from Vercel)
+        if (res.status === 413) {
+          throw new Error(
+            "File is too large. Maximum size is 4MB. Please compress your image or use a smaller file."
+          );
+        }
+        throw new Error(`Upload failed: ${res.status} ${res.statusText}`);
       }
-
-      setUploadedMedia((prev) => [...prev, data]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -62,7 +91,17 @@ export default function NewPostPage() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB
+
     Array.from(files).forEach((file) => {
+      if (file.size > MAX_FILE_SIZE) {
+        setError(
+          `File "${file.name}" is too large. Maximum size is ${
+            MAX_FILE_SIZE / 1024 / 1024
+          }MB. Please compress your image or use a smaller file.`
+        );
+        return;
+      }
       handleFileUpload(file);
     });
   };
