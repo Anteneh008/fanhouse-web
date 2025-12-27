@@ -315,7 +315,7 @@ export default function BecomeCreatorPage() {
             {error && (
               <div className="bg-linear-to-r from-red-500/20 to-red-600/20 border border-red-400/40 text-red-100 px-5 py-4 rounded-2xl backdrop-blur-sm flex items-center space-x-3 shadow-lg animate-shake">
                 <svg
-                  className="w-6 h-6 text-red-300 flex-shrink-0"
+                  className="w-6 h-6 text-red-300 shrink-0"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
