@@ -76,6 +76,61 @@ export default async function CreatorPostPage({
     unlockCount = parseInt(unlockResult.rows[0]?.count || "0");
   }
 
+  // Get users who liked this post
+  const likesResult = await db.query(
+    `SELECT 
+      pl.user_id as "userId",
+      pl.created_at as "likedAt",
+      u.email,
+      cp.display_name as "displayName"
+    FROM post_likes pl
+    INNER JOIN users u ON pl.user_id = u.id
+    LEFT JOIN creator_profiles cp ON u.id = cp.user_id
+    WHERE pl.post_id = $1
+    ORDER BY pl.created_at DESC
+    LIMIT 100`,
+    [postId]
+  );
+
+  const likedUsers = likesResult.rows.map((row) => ({
+    userId: row.userId,
+    email: row.email,
+    displayName: row.displayName,
+    likedAt: row.likedAt,
+  }));
+
+  // Get comments for this post
+  const commentsResult = await db.query(
+    `SELECT 
+      c.id,
+      c.user_id as "userId",
+      c.content,
+      c.parent_comment_id as "parentCommentId",
+      c.created_at as "createdAt",
+      c.updated_at as "updatedAt",
+      u.email,
+      cp.display_name as "displayName"
+    FROM post_comments c
+    INNER JOIN users u ON c.user_id = u.id
+    LEFT JOIN creator_profiles cp ON u.id = cp.user_id
+    WHERE c.post_id = $1 AND c.is_deleted = false
+    ORDER BY c.created_at ASC`,
+    [postId]
+  );
+
+  const comments = commentsResult.rows.map((row) => ({
+    id: row.id,
+    userId: row.userId,
+    content: row.content,
+    parentCommentId: row.parentCommentId,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    user: {
+      email: row.email,
+      displayName: row.displayName,
+    },
+  }));
+
   return (
     <div className="min-h-screen bg-linear-to-r from-purple-900 via-blue-900 to-indigo-900">
       <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
@@ -347,6 +402,127 @@ export default async function CreatorPostPage({
             </div>
           </div>
         </div>
+
+        {/* Users Who Liked */}
+        {likedUsers.length > 0 && (
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 overflow-hidden mb-6">
+            <div className="p-6 border-b border-white/10">
+              <h3 className="text-lg font-bold text-white flex items-center space-x-2">
+                <svg
+                  className="w-5 h-5 text-pink-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                  />
+                </svg>
+                <span>
+                  Liked by {post.likesCount}{" "}
+                  {post.likesCount === 1 ? "fan" : "fans"}
+                </span>
+              </h3>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {likedUsers.map((likedUser) => (
+                  <div
+                    key={likedUser.userId}
+                    className="flex items-center space-x-3 bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-linear-to-r from-pink-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                      {(likedUser.displayName || likedUser.email)
+                        .charAt(0)
+                        .toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-white text-sm truncate">
+                        {likedUser.displayName || likedUser.email}
+                      </p>
+                      <p className="text-xs text-white/60">
+                        {new Date(likedUser.likedAt).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "short",
+                            day: "numeric",
+                          }
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Comments */}
+        {comments.length > 0 && (
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 overflow-hidden mb-6">
+            <div className="p-6 border-b border-white/10">
+              <h3 className="text-lg font-bold text-white flex items-center space-x-2">
+                <svg
+                  className="w-5 h-5 text-blue-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  />
+                </svg>
+                <span>
+                  {post.commentsCount}{" "}
+                  {post.commentsCount === 1 ? "Comment" : "Comments"}
+                </span>
+              </h3>
+            </div>
+            <div className="p-6 space-y-4 max-h-96 overflow-y-auto">
+              {comments.map((comment) => (
+                <div
+                  key={comment.id}
+                  className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10"
+                >
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 rounded-full bg-linear-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                      {(comment.user.displayName || comment.user.email)
+                        .charAt(0)
+                        .toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <span className="font-semibold text-white text-sm">
+                          {comment.user.displayName || comment.user.email}
+                        </span>
+                        <span className="text-xs text-white/50">
+                          {new Date(comment.createdAt).toLocaleDateString(
+                            "en-US",
+                            {
+                              month: "short",
+                              day: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                            }
+                          )}
+                        </span>
+                      </div>
+                      <p className="text-white/90 text-sm whitespace-pre-wrap overflow-wrap-anywhere">
+                        {comment.content}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-xl border border-white/20">
