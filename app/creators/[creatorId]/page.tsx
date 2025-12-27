@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import db from '@/lib/db';
 import Link from 'next/link';
+import Image from 'next/image';
 import MessageButton from '@/app/components/MessageButton';
 
 export default async function CreatorProfilePage({
@@ -88,12 +89,14 @@ export default async function CreatorProfilePage({
         {/* Creator Header */}
         <div className="bg-white shadow rounded-lg p-6 mb-6">
           <div className="flex items-start space-x-6">
-            <div className="w-24 h-24 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden shrink-0">
+            <div className="w-24 h-24 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden shrink-0 relative">
               {creator.avatarUrl ? (
-                <img
+                <Image
                   src={creator.avatarUrl}
                   alt={creator.displayName || creator.email}
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
+                  unoptimized
                 />
               ) : (
                 <span className="text-4xl font-bold text-gray-600">
