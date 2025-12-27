@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
             hasAccess: true,
           });
         } else {
-          // Show post but mark as locked
+          // Show post but mark as locked - hide all media except thumbnails
           accessiblePosts.push({
             id: row.id,
             creatorId: row.creator_id,
@@ -123,15 +123,18 @@ export async function GET(request: NextRequest) {
             likesCount: row.likes_count,
             commentsCount: row.comments_count,
             createdAt: row.created_at,
-            media: row.media?.map((m: any) => ({
-              ...m,
-              fileUrl: m.thumbnailUrl || null, // Show thumbnail only
+            // Only include media items that have thumbnails, and only show thumbnails
+            media: row.media?.filter((m: any) => m.thumbnailUrl).map((m: any) => ({
+              id: m.id,
+              fileUrl: m.thumbnailUrl, // Only thumbnail, not the actual file
+              fileType: m.fileType,
+              thumbnailUrl: m.thumbnailUrl,
             })) || [],
             hasAccess: false,
           });
         }
       } else {
-        // Not logged in - show locked
+        // Not logged in - show locked - hide all media except thumbnails
         accessiblePosts.push({
           id: row.id,
           creatorId: row.creator_id,
@@ -145,9 +148,12 @@ export async function GET(request: NextRequest) {
           likesCount: row.likes_count,
           commentsCount: row.comments_count,
           createdAt: row.created_at,
-          media: row.media?.map((m: any) => ({
-            ...m,
-            fileUrl: m.thumbnailUrl || null,
+          // Only include media items that have thumbnails, and only show thumbnails
+          media: row.media?.filter((m: any) => m.thumbnailUrl).map((m: any) => ({
+            id: m.id,
+            fileUrl: m.thumbnailUrl, // Only thumbnail, not the actual file
+            fileType: m.fileType,
+            thumbnailUrl: m.thumbnailUrl,
           })) || [],
           hasAccess: false,
         });

@@ -202,8 +202,8 @@ export default function FeedPage() {
                       </div>
                     )}
 
-                    {/* Media */}
-                    {post.media.length > 0 && (
+                    {/* Media - Only show if hasAccess is true */}
+                    {post.hasAccess && post.media.length > 0 && (
                       <div className="px-5 pb-5">
                         <div className="grid grid-cols-1 gap-3">
                           {post.media.map((media) => (
@@ -283,8 +283,10 @@ export default function FeedPage() {
                   <div className="p-8 text-center">
                     <div className="max-w-md mx-auto">
                       <div className="mb-6">
+                        {/* Only show thumbnail for locked content, never the actual video */}
                         {post.media.length > 0 &&
-                          post.media[0].thumbnailUrl && (
+                          post.media[0].thumbnailUrl &&
+                          !post.hasAccess && (
                             <div className="relative w-full h-64 rounded-xl overflow-hidden mb-4">
                               <Image
                                 src={post.media[0].thumbnailUrl}
