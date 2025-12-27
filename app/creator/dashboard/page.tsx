@@ -236,13 +236,12 @@ export default async function CreatorDashboardPage() {
                 >
                   🔐 Verify Identity
                 </Link>
-                <button
-                  disabled
-                  className="px-4 py-3 bg-white/5 text-white/50 rounded-xl text-center font-semibold border border-white/10 disabled:cursor-not-allowed"
+                <Link
+                  href="/creator/streams"
+                  className="px-4 py-3 bg-linear-to-r from-red-600 to-pink-600 text-white rounded-xl hover:from-red-700 hover:to-pink-700 text-center font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                 >
                   🎥 Go Live
-                  <div className="text-xs opacity-75 mt-1">Coming soon</div>
-                </button>
+                </Link>
                 <Link
                   href="/creator/earnings"
                   className="px-4 py-3 bg-linear-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 text-center font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
