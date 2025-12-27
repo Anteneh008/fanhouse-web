@@ -120,7 +120,7 @@ export default function CreatorManagement({
                   <div className="flex items-start justify-between flex-wrap gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start space-x-4">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400/30 to-orange-500/30 flex items-center justify-center shrink-0">
+                        <div className="w-12 h-12 rounded-full bg-linear-to-brfrom-yellow-400/30 to-orange-500/30 flex items-center justify-center shrink-0">
                           <svg
                             className="w-6 h-6 text-yellow-300"
                             fill="none"
@@ -208,7 +208,7 @@ export default function CreatorManagement({
                       <button
                         onClick={() => handleApprove(creator.id)}
                         disabled={loading === creator.id}
-                        className="inline-flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:transform-none"
+                        className="inline-flex items-center justify-center space-x-2 px-6 py-3 bg-linear-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:transform-none"
                       >
                         {loading === creator.id ? (
                           <>
@@ -268,7 +268,7 @@ export default function CreatorManagement({
                         <button
                           onClick={() => handleReject(creator.id)}
                           disabled={loading === creator.id}
-                          className="inline-flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:shadow-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:transform-none"
+                          className="inline-flex items-center justify-center space-x-2 px-6 py-3 bg-linear-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:shadow-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:transform-none"
                         >
                           {loading === creator.id ? (
                             <>
@@ -353,7 +353,7 @@ export default function CreatorManagement({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400/30 to-emerald-500/30 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-linear-to-brfrom-green-400/30 to-emerald-500/30 flex items-center justify-center">
                         <svg
                           className="w-5 h-5 text-green-300"
                           fill="none"
@@ -390,7 +390,7 @@ export default function CreatorManagement({
                         </p>
                       </div>
                     </div>
-                    <span className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-500/30 to-emerald-500/30 border border-green-400/50 text-green-200 rounded-full text-sm font-bold">
+                    <span className="inline-flex items-center px-4 py-2 bg-linear-to-r from-green-500/30 to-emerald-500/30 border border-green-400/50 text-green-200 rounded-full text-sm font-bold">
                       <svg
                         className="w-4 h-4 mr-1"
                         fill="currentColor"
@@ -443,7 +443,7 @@ export default function CreatorManagement({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4 flex-1 min-w-0">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-400/30 to-red-600/30 flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-linear-to-brfrom-red-400/30 to-red-600/30 flex items-center justify-center shrink-0">
                         <svg
                           className="w-5 h-5 text-red-300"
                           fill="none"
@@ -503,7 +503,7 @@ export default function CreatorManagement({
                         )}
                       </div>
                     </div>
-                    <span className="ml-4 inline-flex items-center px-4 py-2 bg-gradient-to-r from-red-500/30 to-red-600/30 border border-red-400/50 text-red-200 rounded-full text-sm font-bold shrink-0">
+                    <span className="ml-4 inline-flex items-center px-4 py-2 bg-linear-to-r from-red-500/30 to-red-600/30 border border-red-400/50 text-red-200 rounded-full text-sm font-bold shrink-0">
                       <svg
                         className="w-4 h-4 mr-1"
                         fill="currentColor"
