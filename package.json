@@ -12,6 +12,7 @@
     "db:create-admin": "node scripts/create-admin.js"
   },
   "dependencies": {
+    "@knocklabs/node": "^1.25.0",
     "ably": "^2.16.0",
     "bcrypt": "^6.0.0",
     "browser-image-compression": "^2.0.2",

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import db from '@/lib/db';
 import { getAblyClient, getThreadChannelName } from '@/lib/ably';
+import { notifyNewMessage } from '@/lib/knock';
 
 /**
  * Send a message
@@ -158,6 +159,16 @@ export async function POST(request: NextRequest) {
       console.error('Ably publish error:', ablyError);
       // Continue even if Ably fails - message is saved in DB and will appear via optimistic update
     }
+
+    // Send notification to recipient (async, don't wait)
+    notifyNewMessage(
+      recipientId,
+      user.id,
+      message.id,
+      senderDisplayName || user.email
+    ).catch((error) => {
+      console.error('Failed to send notification:', error);
+    });
 
     return NextResponse.json({
       message: messageResponse,

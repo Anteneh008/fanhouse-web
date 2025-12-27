@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyCCBillWebhook, parseCCBillWebhook, getCCBillConfig } from '@/lib/ccbill';
 import db from '@/lib/db';
+import { notifyPaymentReceived } from '@/lib/knock';
 
 /**
  * CCBill Webhook Handler
@@ -235,6 +236,22 @@ async function handlePaymentCompleted(event: {
           `Tip - Transaction ${event.transactionId}`,
           transaction.id,
         ]
+      );
+
+      // Notify creator about payment (async, don't wait)
+      notifyPaymentReceived(creatorId, transaction.id, event.amountCents, 'tip').catch(
+        (error) => {
+          console.error('Failed to send notification:', error);
+        }
+      );
+    }
+
+    // Notify creator about subscription payment
+    if (transactionType === 'subscription') {
+      notifyPaymentReceived(creatorId, transaction.id, event.amountCents, 'subscription').catch(
+        (error) => {
+          console.error('Failed to send notification:', error);
+        }
       );
     }
 

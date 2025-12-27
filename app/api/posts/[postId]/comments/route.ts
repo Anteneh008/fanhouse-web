@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, getCurrentUser } from "@/lib/auth";
 import db from "@/lib/db";
+import { notifyNewComment } from "@/lib/knock";
 
 /**
  * Get comments for a post
@@ -169,6 +170,24 @@ export async function POST(
       "SELECT comments_count FROM posts WHERE id = $1",
       [postId]
     );
+
+    // Get post creator to notify them
+    const postResult = await db.query(
+      "SELECT creator_id FROM posts WHERE id = $1",
+      [postId]
+    );
+    const creatorId = postResult.rows[0]?.creator_id;
+
+    // Notify creator if comment is on their post (async, don't wait)
+    if (creatorId && creatorId !== user.id) {
+      const commenterName =
+        commentResult.rows[0]?.displayName || commentResult.rows[0]?.email;
+      notifyNewComment(creatorId, postId, user.id, commenterName).catch(
+        (error) => {
+          console.error("Failed to send notification:", error);
+        }
+      );
+    }
 
     return NextResponse.json(
       {

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import NotificationBell from "./NotificationBell";
 
 interface DashboardNavProps {
   userRole: "fan" | "creator" | "admin";
@@ -144,9 +145,9 @@ export default function DashboardNav({ userRole }: DashboardNavProps) {
       : fanNav;
 
   return (
-    <nav className="bg-linear-to-r from-purple-900 via-blue-900 to-indigo-900 backdrop-blur-lg border-b border-white/20 shadow-xl">
+    <nav className="bg-linear-to-r from-purple-900 via-blue-900 to-indigo-900 backdrop-blur-lg border-b border-white/20 shadow-xl relative z-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+        <div className="flex justify-between h-16 relative">
           <div className="flex">
             <div className="shrink-0 flex items-center">
               <Link
@@ -190,7 +191,8 @@ export default function DashboardNav({ userRole }: DashboardNavProps) {
               ))}
             </div>
           </div>
-          <div className="hidden sm:ml-6 sm:flex sm:items-center">
+          <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
+            <NotificationBell />
             <button
               onClick={handleLogout}
               disabled={isLoggingOut}
@@ -240,7 +242,8 @@ export default function DashboardNav({ userRole }: DashboardNavProps) {
             </button>
           </div>
           {/* Mobile menu button */}
-          <div className="sm:hidden flex items-center">
+          <div className="sm:hidden flex items-center space-x-2">
+            <NotificationBell />
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="inline-flex items-center justify-center p-2 rounded-xl text-white/80 hover:text-white hover:bg-white/10 transition-all duration-300"

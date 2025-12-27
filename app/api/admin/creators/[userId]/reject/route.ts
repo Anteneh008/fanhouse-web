@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireRole } from '@/lib/auth';
 import db from '@/lib/db';
+import { notifyCreatorRejected } from '@/lib/knock';
 
 /**
  * Reject a creator (admin only)
@@ -55,8 +56,10 @@ export async function POST(
       [userId, reason || 'Application rejected by admin']
     );
 
-    // TODO: Emit event: creator.kyc.rejected
-    // TODO: Send notification to creator
+    // Send notification to creator (async, don't wait)
+    notifyCreatorRejected(userId, reason || undefined).catch((error) => {
+      console.error('Failed to send notification:', error);
+    });
 
     return NextResponse.json({
       message: 'Creator rejected',

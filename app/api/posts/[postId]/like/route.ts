@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import db from "@/lib/db";
+import { notifyNewLike } from "@/lib/knock";
 
 /**
  * Like or unlike a post
@@ -52,6 +53,26 @@ export async function POST(
       "SELECT likes_count FROM posts WHERE id = $1",
       [postId]
     );
+
+    // Get post creator to notify them
+    const postCreatorResult = await db.query(
+      "SELECT creator_id FROM posts WHERE id = $1",
+      [postId]
+    );
+    const creatorId = postCreatorResult.rows[0]?.creator_id;
+
+    // Notify creator if like is on their post (async, don't wait)
+    if (creatorId && creatorId !== user.id) {
+      const likerProfileResult = await db.query(
+        "SELECT display_name FROM creator_profiles WHERE user_id = $1",
+        [user.id]
+      );
+      const likerName =
+        likerProfileResult.rows[0]?.display_name || user.email;
+      notifyNewLike(creatorId, postId, user.id, likerName).catch((error) => {
+        console.error("Failed to send notification:", error);
+      });
+    }
 
     return NextResponse.json({
       message: "Post liked successfully",

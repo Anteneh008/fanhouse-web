@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import db from "@/lib/db";
 import { PostVisibility } from "@/lib/types";
+import { notifyNewPost } from "@/lib/knock";
 
 /**
  * Create a new post
@@ -52,6 +53,37 @@ export async function POST(request: NextRequest) {
     );
 
     const post = result.rows[0];
+
+    // Get creator profile for notification
+    const creatorProfileResult = await db.query(
+      'SELECT display_name FROM creator_profiles WHERE user_id = $1',
+      [user.id]
+    );
+    const creatorName = creatorProfileResult.rows[0]?.display_name || user.email;
+
+    // Notify subscribers about new post (async, don't wait)
+    // Only notify for free and subscriber posts (not PPV)
+    if (visibilityType === 'free' || visibilityType === 'subscriber') {
+      db.query(
+        `SELECT fan_id FROM subscriptions 
+         WHERE creator_id = $1 AND status = 'active'`,
+        [user.id]
+      )
+        .then((subscribersResult) => {
+          const subscribers = subscribersResult.rows.map((row) => row.fan_id);
+          // Notify each subscriber
+          subscribers.forEach((subscriberId) => {
+            notifyNewPost(subscriberId, user.id, post.id, creatorName).catch(
+              (error) => {
+                console.error('Failed to send notification:', error);
+              }
+            );
+          });
+        })
+        .catch((error) => {
+          console.error('Failed to fetch subscribers:', error);
+        });
+    }
 
     return NextResponse.json(
       {

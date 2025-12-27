@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireRole } from '@/lib/auth';
 import db from '@/lib/db';
+import { notifyCreatorApproved } from '@/lib/knock';
 
 /**
  * Approve a creator (admin only)
@@ -52,8 +53,10 @@ export async function POST(
       [userId]
     );
 
-    // TODO: Emit event: creator.kyc.approved
-    // TODO: Send notification to creator
+    // Send notification to creator (async, don't wait)
+    notifyCreatorApproved(userId).catch((error) => {
+      console.error('Failed to send notification:', error);
+    });
 
     return NextResponse.json({
       message: 'Creator approved successfully',
