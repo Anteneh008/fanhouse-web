@@ -4,6 +4,7 @@ import { useState, FormEvent, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { compressImage } from "@/lib/image-compression";
 
 interface UploadedMedia {
   id?: string;
@@ -75,17 +76,46 @@ export default function EditPostPage() {
       setUploadingFile(file.name);
       setError("");
 
-      // Validate file size (4MB limit for Vercel)
       const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB
-      if (file.size > MAX_FILE_SIZE) {
-        throw new Error(`File is too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB`);
+      let fileToUpload = file;
+
+      // Compress images before upload
+      if (file.type.startsWith("image/")) {
+        try {
+          setUploadingFile(`Compressing ${file.name}...`);
+          fileToUpload = await compressImage(file, 4);
+          
+          // Check size after compression
+          if (fileToUpload.size > MAX_FILE_SIZE) {
+            throw new Error(
+              `File "${file.name}" is still too large after compression (${(fileToUpload.size / 1024 / 1024).toFixed(2)}MB). Please use a smaller image.`
+            );
+          }
+        } catch (compressionError) {
+          console.error("Compression error:", compressionError);
+          // If compression fails, check original size
+          if (file.size > MAX_FILE_SIZE) {
+            throw new Error(
+              `File "${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB.`
+            );
+          }
+          // Use original file if compression fails but size is OK
+          fileToUpload = file;
+        }
+      } else {
+        // For videos, just check size
+        if (file.size > MAX_FILE_SIZE) {
+          throw new Error(
+            `File "${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB.`
+          );
+        }
       }
 
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", fileToUpload);
       formData.append(
         "type",
-        file.type.startsWith("image/") ? "image" : "video"
+        fileToUpload.type.startsWith("image/") ? "image" : "video"
       );
 
       const res = await fetch("/api/upload", {
@@ -131,13 +161,8 @@ export default function EditPostPage() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB
-
+    // Process all files (compression will happen in handleFileUpload)
     Array.from(files).forEach((file) => {
-      if (file.size > MAX_FILE_SIZE) {
-        setError(`File "${file.name}" is too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB. Please compress your image or use a smaller file.`);
-        return;
-      }
       handleFileUpload(file);
     });
   };
