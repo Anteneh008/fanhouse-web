@@ -12,6 +12,13 @@ export async function GET(request: NextRequest) {
 
     // Request token from Ably
     const ably = getAblyClient();
+    if (!ably) {
+      return NextResponse.json(
+        { error: 'Ably is not configured' },
+        { status: 503 }
+      );
+    }
+
     const tokenRequest = await ably.auth.requestToken({
       clientId: user.id, // Use user ID as client ID for presence
       capability: {

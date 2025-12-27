@@ -50,7 +50,15 @@ export default async function MessagesPage() {
 
           {threads.length > 0 ? (
             <div className="divide-y divide-gray-200">
-              {threads.map((thread: any) => (
+              {threads.map((thread: {
+                id: string;
+                creator_email: string;
+                creator_display_name: string | null;
+                creator_avatar_url: string | null;
+                fan_unread_count: number;
+                last_message_preview: string | null;
+                last_message_at: Date;
+              }) => (
                 <Link
                   key={thread.id}
                   href={`/messages/${thread.id}`}

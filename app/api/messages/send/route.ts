@@ -118,53 +118,49 @@ export async function POST(request: NextRequest) {
 
     const message = messageResult.rows[0];
 
+    // Get sender profile info
+    const senderProfileResult = await db.query(
+      'SELECT display_name FROM creator_profiles WHERE user_id = $1',
+      [user.id]
+    );
+    const senderDisplayName = senderProfileResult.rows[0]?.display_name || null;
+
+    const messageResponse = {
+      id: message.id,
+      threadId: message.thread_id,
+      senderId: message.sender_id,
+      recipientId: message.recipient_id,
+      content: message.content,
+      messageType: message.message_type,
+      mediaUrl: message.media_url,
+      priceCents: message.price_cents,
+      isPaid: message.is_paid,
+      paymentStatus: message.payment_status,
+      transactionId: message.transaction_id,
+      isRead: message.is_read,
+      readAt: message.read_at,
+      createdAt: message.created_at,
+      sender: {
+        id: user.id,
+        email: user.email,
+        displayName: senderDisplayName,
+      },
+    };
+
     // Publish message to Ably channel for real-time delivery
     try {
       const ably = getAblyClient();
-      const channel = ably.channels.get(getThreadChannelName(threadId));
-      await channel.publish('message', {
-        id: message.id,
-        threadId: message.thread_id,
-        senderId: message.sender_id,
-        recipientId: message.recipient_id,
-        content: message.content,
-        messageType: message.message_type,
-        mediaUrl: message.media_url,
-        priceCents: message.price_cents,
-        isPaid: message.is_paid,
-        paymentStatus: message.payment_status,
-        transactionId: message.transaction_id,
-        isRead: message.is_read,
-        readAt: message.read_at,
-        createdAt: message.created_at,
-        sender: {
-          id: user.id,
-          email: user.email,
-          displayName: null, // Could be populated from profile
-        },
-      });
+      if (ably) {
+        const channel = ably.channels.get(getThreadChannelName(threadId));
+        await channel.publish('message', messageResponse);
+      }
     } catch (ablyError) {
       console.error('Ably publish error:', ablyError);
-      // Continue even if Ably fails - message is saved in DB
+      // Continue even if Ably fails - message is saved in DB and will appear via optimistic update
     }
 
     return NextResponse.json({
-      message: {
-        id: message.id,
-        threadId: message.thread_id,
-        senderId: message.sender_id,
-        recipientId: message.recipient_id,
-        content: message.content,
-        messageType: message.message_type,
-        mediaUrl: message.media_url,
-        priceCents: message.price_cents,
-        isPaid: message.is_paid,
-        paymentStatus: message.payment_status,
-        transactionId: message.transaction_id,
-        isRead: message.is_read,
-        readAt: message.read_at,
-        createdAt: message.created_at,
-      },
+      message: messageResponse,
     });
   } catch (error) {
     console.error('Send message error:', error);

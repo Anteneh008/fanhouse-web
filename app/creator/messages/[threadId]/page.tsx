@@ -1,10 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect, FormEvent, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { useAbly } from '@/lib/hooks/useAbly';
-import type { Types } from 'ably';
+import { useState, useEffect, FormEvent, useRef } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useAbly, type AblyMessage } from "@/lib/hooks/useAbly";
 
 interface Message {
   id: string;
@@ -40,21 +39,24 @@ interface Thread {
   };
 }
 
-export default function CreatorThreadPage({ params }: { params: Promise<{ threadId: string }> }) {
-  const router = useRouter();
-  const [threadId, setThreadId] = useState<string>('');
+export default function CreatorThreadPage({
+  params,
+}: {
+  params: Promise<{ threadId: string }>;
+}) {
+  const [threadId, setThreadId] = useState<string>("");
   const [thread, setThread] = useState<Thread | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [content, setContent] = useState('');
-  const [error, setError] = useState('');
+  const [content, setContent] = useState("");
+  const [error, setError] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Use Ably for real-time messaging
-  const { ably, isConnected, typingUsers, sendTypingIndicator } = useAbly(threadId, {
-    onMessage: (ablyMessage: Types.Message) => {
+  const { isConnected, typingUsers, sendTypingIndicator } = useAbly(threadId, {
+    onMessage: (ablyMessage: AblyMessage) => {
       const newMessage = ablyMessage.data as Message;
       setMessages((prev) => {
         // Avoid duplicates
@@ -99,7 +101,7 @@ export default function CreatorThreadPage({ params }: { params: Promise<{ thread
   }, [content, sendTypingIndicator]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   const fetchThread = async (id: string) => {
@@ -108,13 +110,13 @@ export default function CreatorThreadPage({ params }: { params: Promise<{ thread
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to load thread');
+        throw new Error(data.error || "Failed to load thread");
       }
 
       setThread(data.thread);
       setMessages(data.messages || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load thread');
+      setError(err instanceof Error ? err.message : "Failed to load thread");
     } finally {
       setLoading(false);
     }
@@ -125,7 +127,7 @@ export default function CreatorThreadPage({ params }: { params: Promise<{ thread
     const trimmedContent = content.trim();
     if (!trimmedContent || sending) return;
 
-    setError('');
+    setError("");
     setSending(true);
 
     // Stop typing indicator
@@ -135,23 +137,23 @@ export default function CreatorThreadPage({ params }: { params: Promise<{ thread
 
     try {
       if (!thread) {
-        throw new Error('Thread not loaded');
+        throw new Error("Thread not loaded");
       }
 
       if (!thread.fanId) {
-        throw new Error('Fan ID not found in thread');
+        throw new Error("Fan ID not found in thread");
       }
 
       const recipientId = thread.fanId;
 
       if (!recipientId) {
-        throw new Error('Recipient ID is required');
+        throw new Error("Recipient ID is required");
       }
 
-      const res = await fetch('/api/messages/send', {
-        method: 'POST',
+      const res = await fetch("/api/messages/send", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           recipientId,
@@ -162,13 +164,41 @@ export default function CreatorThreadPage({ params }: { params: Promise<{ thread
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to send message');
+        throw new Error(data.error || "Failed to send message");
       }
 
-      setContent('');
-      // Message will be added via Ably real-time update
+      // Add message to local state immediately (optimistic update)
+      if (data.message && thread) {
+        const newMessage: Message = {
+          id: data.message.id,
+          senderId: data.message.senderId,
+          content: data.message.content,
+          messageType: data.message.messageType,
+          mediaUrl: data.message.mediaUrl,
+          priceCents: data.message.priceCents,
+          isPaid: data.message.isPaid,
+          paymentStatus: data.message.paymentStatus,
+          isRead: data.message.isRead,
+          createdAt: data.message.createdAt,
+          sender: data.message.sender || {
+            id: data.message.senderId,
+            email: thread.creator?.email || "",
+            displayName: thread.creator?.displayName || null,
+          },
+        };
+        setMessages((prev) => {
+          // Avoid duplicates
+          if (prev.some((m) => m.id === newMessage.id)) {
+            return prev;
+          }
+          return [...prev, newMessage];
+        });
+      }
+
+      setContent("");
+      // Message will also be added via Ably real-time update (for other clients)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send message');
+      setError(err instanceof Error ? err.message : "Failed to send message");
     } finally {
       setSending(false);
     }
@@ -190,7 +220,10 @@ export default function CreatorThreadPage({ params }: { params: Promise<{ thread
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error}</p>
-          <Link href="/creator/messages" className="text-blue-600 hover:text-blue-500">
+          <Link
+            href="/creator/messages"
+            className="text-blue-600 hover:text-blue-500"
+          >
             ← Back to Messages
           </Link>
         </div>
@@ -240,31 +273,40 @@ export default function CreatorThreadPage({ params }: { params: Promise<{ thread
             return (
               <div
                 key={message.id}
-                className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
               >
                 <div
                   className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                     isOwn
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white text-gray-900 border border-gray-200'
+                      ? "bg-blue-600 text-white"
+                      : "bg-white text-gray-900 border border-gray-200"
                   }`}
                 >
-                  {message.isPaid && message.paymentStatus === 'pending' && (
+                  {message.isPaid && message.paymentStatus === "pending" && (
                     <div className="text-xs opacity-75 mb-1">
                       💰 Paid message - ${(message.priceCents / 100).toFixed(2)}
                     </div>
                   )}
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  <p className="text-sm whitespace-pre-wrap">
+                    {message.content}
+                  </p>
                   {message.mediaUrl && (
-                    <div className="mt-2">
-                      <img
+                    <div className="mt-2 relative w-full h-auto">
+                      <Image
                         src={message.mediaUrl}
                         alt="Message media"
+                        width={800}
+                        height={600}
                         className="max-w-full h-auto rounded"
+                        unoptimized
                       />
                     </div>
                   )}
-                  <p className={`text-xs mt-1 ${isOwn ? 'text-blue-100' : 'text-gray-500'}`}>
+                  <p
+                    className={`text-xs mt-1 ${
+                      isOwn ? "text-blue-100" : "text-gray-500"
+                    }`}
+                  >
                     {new Date(message.createdAt).toLocaleTimeString()}
                   </p>
                 </div>
@@ -304,7 +346,7 @@ export default function CreatorThreadPage({ params }: { params: Promise<{ thread
               disabled={!content.trim() || sending}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {sending ? 'Sending...' : 'Send'}
+              {sending ? "Sending..." : "Send"}
             </button>
           </form>
         </div>

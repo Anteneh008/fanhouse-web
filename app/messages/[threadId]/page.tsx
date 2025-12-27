@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect, FormEvent, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAbly } from '@/lib/hooks/useAbly';
-import type { Types } from 'ably';
+import Image from 'next/image';
+import { useAbly, type AblyMessage } from '@/lib/hooks/useAbly';
 
 interface Message {
   id: string;
@@ -41,7 +40,6 @@ interface Thread {
 }
 
 export default function ThreadPage({ params }: { params: Promise<{ threadId: string }> }) {
-  const router = useRouter();
   const [threadId, setThreadId] = useState<string>('');
   const [thread, setThread] = useState<Thread | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -54,7 +52,7 @@ export default function ThreadPage({ params }: { params: Promise<{ threadId: str
 
   // Use Ably for real-time messaging
   const { ably, isConnected, typingUsers, sendTypingIndicator } = useAbly(threadId, {
-    onMessage: (ablyMessage: Types.Message) => {
+    onMessage: (ablyMessage: AblyMessage) => {
       const newMessage = ablyMessage.data as Message;
       setMessages((prev) => {
         // Avoid duplicates
@@ -165,8 +163,36 @@ export default function ThreadPage({ params }: { params: Promise<{ threadId: str
         throw new Error(data.error || 'Failed to send message');
       }
 
+      // Add message to local state immediately (optimistic update)
+      if (data.message && thread) {
+        const newMessage: Message = {
+          id: data.message.id,
+          senderId: data.message.senderId,
+          content: data.message.content,
+          messageType: data.message.messageType,
+          mediaUrl: data.message.mediaUrl,
+          priceCents: data.message.priceCents,
+          isPaid: data.message.isPaid,
+          paymentStatus: data.message.paymentStatus,
+          isRead: data.message.isRead,
+          createdAt: data.message.createdAt,
+          sender: data.message.sender || {
+            id: data.message.senderId,
+            email: thread.fan?.email || '',
+            displayName: thread.fan?.displayName || null,
+          },
+        };
+        setMessages((prev) => {
+          // Avoid duplicates
+          if (prev.some((m) => m.id === newMessage.id)) {
+            return prev;
+          }
+          return [...prev, newMessage];
+        });
+      }
+
       setContent('');
-      // Message will be added via Ably real-time update
+      // Message will also be added via Ably real-time update (for other clients)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send message');
     } finally {
@@ -256,11 +282,14 @@ export default function ThreadPage({ params }: { params: Promise<{ threadId: str
                   )}
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   {message.mediaUrl && (
-                    <div className="mt-2">
-                      <img
+                    <div className="mt-2 relative w-full h-auto">
+                      <Image
                         src={message.mediaUrl}
                         alt="Message media"
+                        width={800}
+                        height={600}
                         className="max-w-full h-auto rounded"
+                        unoptimized
                       />
                     </div>
                   )}

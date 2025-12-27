@@ -2,11 +2,20 @@
 
 import { useEffect, useState, useRef } from 'react';
 import Ably from 'ably';
-import type { Types } from 'ably';
+
+// Ably message type
+export type AblyMessage = {
+  data: unknown;
+  name: string;
+  clientId: string;
+  connectionId: string;
+  id: string;
+  timestamp: number;
+};
 
 interface UseAblyOptions {
-  onMessage?: (message: Types.Message) => void;
-  onPresenceUpdate?: (presenceData: Types.PresenceMessage[]) => void;
+  onMessage?: (message: AblyMessage) => void;
+  onPresenceUpdate?: (presenceData: AblyMessage[]) => void;
   onTyping?: (userId: string, isTyping: boolean) => void;
 }
 
@@ -16,10 +25,10 @@ export function useAbly(
 ) {
   const [ably, setAbly] = useState<Ably.Realtime | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [presenceMembers, setPresenceMembers] = useState<Types.PresenceMessage[]>([]);
+  const [presenceMembers, setPresenceMembers] = useState<AblyMessage[]>([]);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
-  const channelRef = useRef<Types.RealtimeChannel | null>(null);
-  const presenceChannelRef = useRef<Types.RealtimeChannel | null>(null);
+  const channelRef = useRef<Ably.RealtimeChannel | null>(null);
+  const presenceChannelRef = useRef<Ably.RealtimeChannel | null>(null);
   const typingTimeoutRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   useEffect(() => {
@@ -35,7 +44,9 @@ export function useAbly(
         const tokenData = await tokenRes.json();
 
         if (!tokenRes.ok) {
-          throw new Error(tokenData.error || 'Failed to get Ably token');
+          console.warn('Ably token failed, real-time updates disabled:', tokenData.error);
+          // Don't throw - allow app to work without Ably (messages will still appear via optimistic updates)
+          return;
         }
 
         const client = new Ably.Realtime({
