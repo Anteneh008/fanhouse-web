@@ -19,9 +19,11 @@ const pool = new Pool({
 });
 
 const schemaFiles = [
-  'db-schema.sql',
-  'db-schema-messaging.sql',
-  'db-schema-payouts.sql',
+  'db-schema.sql',              // Users table (base)
+  'db-schema-extended.sql',     // Creator profiles, KYC, update_updated_at_column() function
+  'db-schema-content.sql',      // Posts, transactions, subscriptions, entitlements, ledger
+  'db-schema-messaging.sql',   // Message threads and messages (depends on transactions)
+  'db-schema-payouts.sql',      // Payouts table
 ];
 
 async function initAllSchemas() {
