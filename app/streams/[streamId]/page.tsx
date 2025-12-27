@@ -51,7 +51,7 @@ export default function StreamPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Ably for live chat
-  const { messages: ablyMessages } = useAbly(`stream:${streamId}:chat`, {
+  useAbly(`stream:${streamId}:chat`, {
     onMessage: (message) => {
       if (message.data && typeof message.data === 'object') {
         const chatMsg = message.data as ChatMessage;

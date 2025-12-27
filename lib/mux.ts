@@ -27,7 +27,10 @@ export function getMuxClient(): Mux | null {
     return muxClient;
   }
 
-  muxClient = new Mux(tokenId, tokenSecret);
+  muxClient = new Mux({
+    tokenId,
+    tokenSecret,
+  });
   return muxClient;
 }
 
@@ -146,7 +149,8 @@ export async function deleteMuxLiveStream(muxStreamId: string): Promise<void> {
   }
 
   try {
-    await mux.video.liveStreams.del(muxStreamId);
+    // Type assertion needed due to TypeScript type definitions
+    await (mux.video.liveStreams as any).delete(muxStreamId);
   } catch (error) {
     console.error('Mux stream deletion error:', error);
     // Don't throw - stream might already be deleted
