@@ -22,17 +22,14 @@ export async function GET(request: NextRequest) {
     const tokenRequest = await ably.auth.requestToken({
       clientId: user.id, // Use user ID as client ID for presence
       capability: {
-        // Allow user to subscribe to any thread they're part of
-        'thread:*': ['subscribe', 'presence'],
-        // Allow user to publish to any thread they're part of
-        'thread:*': ['publish'],
+        // Allow user to subscribe, publish, and use presence on any thread they're part of
+        'thread:*': ['subscribe', 'presence', 'publish'],
         'presence:*': ['subscribe', 'presence'],
       },
     });
 
     return NextResponse.json({
       token: tokenRequest.token,
-      keyName: tokenRequest.keyName,
       issued: tokenRequest.issued,
       expires: tokenRequest.expires,
       capability: tokenRequest.capability,

@@ -15,7 +15,7 @@ export type AblyMessage = {
 
 interface UseAblyOptions {
   onMessage?: (message: AblyMessage) => void;
-  onPresenceUpdate?: (presenceData: AblyMessage[]) => void;
+  onPresenceUpdate?: (presenceData: Ably.PresenceMessage[]) => void;
   onTyping?: (userId: string, isTyping: boolean) => void;
 }
 
@@ -25,7 +25,7 @@ export function useAbly(
 ) {
   const [ably, setAbly] = useState<Ably.Realtime | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [presenceMembers, setPresenceMembers] = useState<AblyMessage[]>([]);
+  const [presenceMembers, setPresenceMembers] = useState<Ably.PresenceMessage[]>([]);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const channelRef = useRef<Ably.RealtimeChannel | null>(null);
   const presenceChannelRef = useRef<Ably.RealtimeChannel | null>(null);
@@ -71,8 +71,17 @@ export function useAbly(
 
           // Subscribe to messages
           channel.subscribe('message', (message) => {
-            if (options.onMessage) {
-              options.onMessage(message);
+            if (options.onMessage && message.data !== undefined) {
+              // Transform Ably message to our AblyMessage type
+              const ablyMessage: AblyMessage = {
+                data: message.data,
+                name: message.name || '',
+                clientId: message.clientId || '',
+                connectionId: message.connectionId || '',
+                id: message.id || '',
+                timestamp: message.timestamp || Date.now(),
+              };
+              options.onMessage(ablyMessage);
             }
           });
 
@@ -87,10 +96,13 @@ export function useAbly(
           // Subscribe to presence updates
           presenceChannel.presence.subscribe('enter', (presenceMsg) => {
             if (mounted) {
-              setPresenceMembers((prev) => [...prev, presenceMsg]);
-              if (options.onPresenceUpdate) {
-                options.onPresenceUpdate([...presenceMembers, presenceMsg]);
-              }
+              setPresenceMembers((prev) => {
+                const updated = [...prev, presenceMsg];
+                if (options.onPresenceUpdate) {
+                  options.onPresenceUpdate(updated);
+                }
+                return updated;
+              });
             }
           });
 
@@ -104,6 +116,7 @@ export function useAbly(
 
           // Subscribe to typing indicators
           channel.subscribe('typing', (message) => {
+            if (!message.data) return;
             const { userId, isTyping } = message.data as { userId: string; isTyping: boolean };
             if (mounted) {
               if (isTyping) {
