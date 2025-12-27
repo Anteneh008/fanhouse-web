@@ -49,7 +49,7 @@ export default async function AdminPage() {
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5 mb-8">
           <div className="bg-white shadow rounded-lg p-6">
             <div className="flex items-center">
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
                   <span className="text-white text-sm font-bold">U</span>
                 </div>
@@ -63,7 +63,7 @@ export default async function AdminPage() {
 
           <div className="bg-white shadow rounded-lg p-6">
             <div className="flex items-center">
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
                   <span className="text-white text-sm font-bold">C</span>
                 </div>
@@ -77,7 +77,7 @@ export default async function AdminPage() {
 
           <div className="bg-white shadow rounded-lg p-6">
             <div className="flex items-center">
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
                   <span className="text-white text-sm font-bold">P</span>
                 </div>
@@ -91,7 +91,7 @@ export default async function AdminPage() {
 
           <div className="bg-white shadow rounded-lg p-6">
             <div className="flex items-center">
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
                   <span className="text-white text-sm font-bold">P</span>
                 </div>
@@ -105,7 +105,7 @@ export default async function AdminPage() {
 
           <div className="bg-white shadow rounded-lg p-6">
             <div className="flex items-center">
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center">
                   <span className="text-white text-sm font-bold">T</span>
                 </div>

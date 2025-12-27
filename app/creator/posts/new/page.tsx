@@ -1,23 +1,26 @@
-'use client';
+"use client";
 
-import { useState, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useState, FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 
 interface UploadedMedia {
   fileUrl: string;
-  fileType: 'image' | 'video';
+  fileType: "image" | "video";
   fileSize: number;
   mimeType: string;
 }
 
 export default function NewPostPage() {
   const router = useRouter();
-  const [content, setContent] = useState('');
-  const [visibilityType, setVisibilityType] = useState<'free' | 'subscriber' | 'ppv'>('free');
-  const [priceCents, setPriceCents] = useState('');
+  const [content, setContent] = useState("");
+  const [visibilityType, setVisibilityType] = useState<
+    "free" | "subscriber" | "ppv"
+  >("free");
+  const [priceCents, setPriceCents] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadedMedia, setUploadedMedia] = useState<UploadedMedia[]>([]);
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
@@ -26,26 +29,29 @@ export default function NewPostPage() {
     try {
       setUploading(true);
       setUploadingFile(file.name);
-      setError('');
+      setError("");
 
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('type', file.type.startsWith('image/') ? 'image' : 'video');
+      formData.append("file", file);
+      formData.append(
+        "type",
+        file.type.startsWith("image/") ? "image" : "video"
+      );
 
-      const res = await fetch('/api/upload', {
-        method: 'POST',
+      const res = await fetch("/api/upload", {
+        method: "POST",
         body: formData,
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Upload failed');
+        throw new Error(data.error || "Upload failed");
       }
 
       setUploadedMedia((prev) => [...prev, data]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
+      setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setUploading(false);
       setUploadingFile(null);
@@ -67,35 +73,38 @@ export default function NewPostPage() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       // Validate PPV price
-      if (visibilityType === 'ppv') {
+      if (visibilityType === "ppv") {
         const price = parseFloat(priceCents);
         if (isNaN(price) || price < 0) {
-          throw new Error('Please enter a valid price for PPV posts');
+          throw new Error("Please enter a valid price for PPV posts");
         }
       }
 
       // Create post
-      const postRes = await fetch('/api/creators/posts', {
-        method: 'POST',
+      const postRes = await fetch("/api/creators/posts", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           content: content.trim() || null,
           visibilityType,
-          priceCents: visibilityType === 'ppv' ? Math.round(parseFloat(priceCents) * 100) : 0,
+          priceCents:
+            visibilityType === "ppv"
+              ? Math.round(parseFloat(priceCents) * 100)
+              : 0,
         }),
       });
 
       const postData = await postRes.json();
 
       if (!postRes.ok) {
-        throw new Error(postData.error || 'Failed to create post');
+        throw new Error(postData.error || "Failed to create post");
       }
 
       const postId = postData.post.id;
@@ -105,9 +114,9 @@ export default function NewPostPage() {
         for (let i = 0; i < uploadedMedia.length; i++) {
           const media = uploadedMedia[i];
           const mediaRes = await fetch(`/api/creators/posts/${postId}/media`, {
-            method: 'POST',
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
               fileUrl: media.fileUrl,
@@ -125,9 +134,9 @@ export default function NewPostPage() {
       }
 
       // Redirect to posts list
-      router.push('/creator/posts');
+      router.push("/creator/posts");
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create post');
+      setError(err instanceof Error ? err.message : "Failed to create post");
     } finally {
       setLoading(false);
     }
@@ -140,10 +149,10 @@ export default function NewPostPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Create New Post</h1>
-              <p className="mt-2 text-gray-600">
-                Share content with your fans
-              </p>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Create New Post
+              </h1>
+              <p className="mt-2 text-gray-600">Share content with your fans</p>
             </div>
             <Link
               href="/creator/posts"
@@ -158,7 +167,10 @@ export default function NewPostPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Content */}
           <div className="bg-white shadow rounded-lg p-6">
-            <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="content"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Content
             </label>
             <textarea
@@ -196,9 +208,12 @@ export default function NewPostPage() {
                     />
                   </svg>
                   <p className="mb-2 text-sm text-gray-500">
-                    <span className="font-semibold">Click to upload</span> or drag and drop
+                    <span className="font-semibold">Click to upload</span> or
+                    drag and drop
                   </p>
-                  <p className="text-xs text-gray-500">Images or Videos (MAX. 50MB)</p>
+                  <p className="text-xs text-gray-500">
+                    Images or Videos (MAX. 50MB)
+                  </p>
                 </div>
                 <input
                   type="file"
@@ -216,12 +231,16 @@ export default function NewPostPage() {
               <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
                 {uploadedMedia.map((media, index) => (
                   <div key={index} className="relative group">
-                    {media.fileType === 'image' ? (
-                      <img
-                        src={media.fileUrl}
-                        alt={`Upload ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg"
-                      />
+                    {media.fileType === "image" ? (
+                      <div className="relative w-full h-32 rounded-lg overflow-hidden">
+                        <Image
+                          src={media.fileUrl}
+                          alt={`Upload ${index + 1}`}
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      </div>
                     ) : (
                       <div className="w-full h-32 bg-gray-200 rounded-lg flex items-center justify-center">
                         <span className="text-gray-500">Video</span>
@@ -232,8 +251,18 @@ export default function NewPostPage() {
                       onClick={() => removeMedia(index)}
                       className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
                       </svg>
                     </button>
                   </div>
@@ -259,10 +288,10 @@ export default function NewPostPage() {
                   type="radio"
                   name="visibility"
                   value="free"
-                  checked={visibilityType === 'free'}
+                  checked={visibilityType === "free"}
                   onChange={(e) => {
-                    setVisibilityType(e.target.value as 'free');
-                    setPriceCents('');
+                    setVisibilityType(e.target.value as "free");
+                    setPriceCents("");
                   }}
                   className="mr-3"
                 />
@@ -277,16 +306,20 @@ export default function NewPostPage() {
                   type="radio"
                   name="visibility"
                   value="subscriber"
-                  checked={visibilityType === 'subscriber'}
+                  checked={visibilityType === "subscriber"}
                   onChange={(e) => {
-                    setVisibilityType(e.target.value as 'subscriber');
-                    setPriceCents('');
+                    setVisibilityType(e.target.value as "subscriber");
+                    setPriceCents("");
                   }}
                   className="mr-3"
                 />
                 <div>
-                  <span className="font-medium text-gray-900">Subscriber Only</span>
-                  <p className="text-sm text-gray-500">Only subscribers can view</p>
+                  <span className="font-medium text-gray-900">
+                    Subscriber Only
+                  </span>
+                  <p className="text-sm text-gray-500">
+                    Only subscribers can view
+                  </p>
                 </div>
               </label>
 
@@ -295,14 +328,18 @@ export default function NewPostPage() {
                   type="radio"
                   name="visibility"
                   value="ppv"
-                  checked={visibilityType === 'ppv'}
-                  onChange={(e) => setVisibilityType(e.target.value as 'ppv')}
+                  checked={visibilityType === "ppv"}
+                  onChange={(e) => setVisibilityType(e.target.value as "ppv")}
                   className="mr-3"
                 />
                 <div className="flex-1">
-                  <span className="font-medium text-gray-900">Pay-Per-View (PPV)</span>
-                  <p className="text-sm text-gray-500">Fans pay to unlock this post</p>
-                  {visibilityType === 'ppv' && (
+                  <span className="font-medium text-gray-900">
+                    Pay-Per-View (PPV)
+                  </span>
+                  <p className="text-sm text-gray-500">
+                    Fans pay to unlock this post
+                  </p>
+                  {visibilityType === "ppv" && (
                     <div className="mt-2">
                       <input
                         type="number"
@@ -341,7 +378,7 @@ export default function NewPostPage() {
               disabled={loading || uploading}
               className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
-              {loading ? 'Creating...' : 'Create Post'}
+              {loading ? "Creating..." : "Create Post"}
             </button>
           </div>
         </form>
@@ -349,4 +386,3 @@ export default function NewPostPage() {
     </div>
   );
 }
-
